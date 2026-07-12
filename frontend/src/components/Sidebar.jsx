@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import "./Sidebar.css";
 
@@ -38,6 +39,14 @@ const NAV = [
 
 export default function Sidebar() {
   const navigate = useNavigate();
+  const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "light" ? "dark" : "light";
+    setTheme(nextTheme);
+    localStorage.setItem("theme", nextTheme);
+    document.documentElement.setAttribute("data-theme", nextTheme);
+  };
 
   return (
     <nav className="sidebar">
@@ -64,9 +73,23 @@ export default function Sidebar() {
       <div style={{ flex: 1 }} />
 
       <div className="sidebar-footer" style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 16, marginTop: 16 }}>
+        {/* Dark/Light mode toggle button */}
+        <button
+          onClick={toggleTheme}
+          className="sidebar-link"
+          style={{
+            background: "none", border: "none", width: "100%", textAlign: "left",
+            color: "rgba(255,255,255,0.7)", cursor: "pointer", display: "flex", gap: "8px", alignItems: "center",
+            padding: "10px 14px", marginBottom: 6
+          }}
+        >
+          {theme === "light" ? "🌙 Dark mode" : "☀️ Light mode"}
+        </button>
+
         <NavLink to="/profile" className="sidebar-link">
           👤 Profile Page
         </NavLink>
+        
         <button
           onClick={() => {
             localStorage.removeItem("token");
