@@ -197,3 +197,23 @@ exports.getLeaderboard = async (req, res) => {
     }
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
+
+exports.getRedemptions = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT rr.id, rr."redeemedAt", rr."pointsDeducted",
+              e.name AS "employeeName", e.email AS "employeeEmail",
+              r.name AS "rewardName", r.description AS "rewardDescription"
+       FROM rewardredemption rr
+       INNER JOIN employee e ON rr."employeeId" = e.id
+       INNER JOIN reward r ON rr."rewardId" = r.id
+       WHERE e."organizationId" = $1
+       ORDER BY rr."redeemedAt" DESC`,
+      [req.user.organizationId]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+

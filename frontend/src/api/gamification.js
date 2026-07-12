@@ -16,6 +16,7 @@ export const gamificationApi = {
 
   getRewards: () => request('/gamification/rewards'),
   redeemReward: (id) => request(`/gamification/rewards/${id}/redeem`, { method: 'POST' }),
+  getRedemptions: () => request('/gamification/redemptions'),
 
   getLeaderboard: (scope) => request(`/gamification/leaderboard?scope=${scope}`)
 };
