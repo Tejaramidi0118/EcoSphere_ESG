@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { gamificationApi } from '../../api/gamification';
-import { Target, Zap, Clock, ChevronRight, UploadCloud, CheckCircle } from 'lucide-react';
+import { Target, Zap, Clock, ChevronRight, UploadCloud, CheckCircle, XCircle } from 'lucide-react';
 
 export default function Challenges() {
   const [challenges, setChallenges] = useState([]);
@@ -104,9 +104,28 @@ export default function Challenges() {
               </div>
               <h3 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>{c.title}</h3>
               <p style={{ color: '#64748b', fontSize: 14, flex: 1, marginBottom: 24 }}>{c.description}</p>
-              <button onClick={() => handleJoin(c.id)} style={{ background: '#10b981', color: '#fff', padding: '12px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 15, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-                Accept Challenge <ChevronRight size={18} />
-              </button>
+              {c.participationStatus === 'Approved' ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#dcfce7', color: '#15803d', padding: '12px 16px', borderRadius: 12, fontWeight: 700, fontSize: 15 }}>
+                  <CheckCircle size={18} /> Completed
+                </div>
+              ) : c.participationStatus === 'Pending' ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#eff6ff', color: '#1d4ed8', padding: '12px 16px', borderRadius: 12, fontWeight: 700, fontSize: 15 }}>
+                  <Clock size={18} /> Active in Log
+                </div>
+              ) : c.participationStatus === 'Rejected' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#fee2e2', color: '#b91c1c', padding: '8px 12px', borderRadius: 8, fontWeight: 600, fontSize: 13 }}>
+                    <XCircle size={16} /> Submission Rejected
+                  </div>
+                  <button onClick={() => setView('active')} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: 12, cursor: 'pointer', fontWeight: 700, fontSize: 14, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+                    Retry Proof <ChevronRight size={16} />
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => handleJoin(c.id)} style={{ background: '#10b981', color: '#fff', padding: '12px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 15, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+                  Accept Challenge <ChevronRight size={18} />
+                </button>
+              )}
             </div>
           ))}
           {challenges.length === 0 && <div style={{ color: '#64748b' }}>No active challenges right now.</div>}
@@ -133,7 +152,7 @@ export default function Challenges() {
                 ) : null}
               </div>
 
-              {((!p.proofUrl) || p.approvalStatus === 'Rejected') && (
+              {(p.approvalStatus === 'Rejected' || (p.approvalStatus === 'Pending' && !p.proofUrl)) && (
                 <div style={{ width: 350, flexShrink: 0, background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: 16, padding: '24px', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
                   <input type="file" accept="application/pdf, image/*" onChange={(e) => handleFileUpload(e, p.id)} style={{ opacity: 0, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
                   <UploadCloud size={48} color="#94a3b8" style={{ margin: '0 auto 16px auto' }} />

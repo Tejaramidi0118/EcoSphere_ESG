@@ -3,14 +3,30 @@ const badgeService = require('../services/badge.service');
 
 exports.getChallenges = async (req, res) => {
   try {
-    const { rows } = await db.query(
+    const { rows: challenges } = await db.query(
       `SELECT c.*, cat.name AS "categoryName", cat.type AS "categoryType"
        FROM challenge c
        LEFT JOIN category cat ON c."categoryId" = cat.id
        WHERE c."organizationId" = $1 AND c.status = 'Active'`,
       [req.user.organizationId]
     );
-    res.json(rows);
+
+    const { rows: participations } = await db.query(
+      `SELECT "challengeId", "approvalStatus" FROM challengeparticipation WHERE "employeeId" = $1`,
+      [req.user.id]
+    );
+
+    const partMap = {};
+    participations.forEach(p => {
+      partMap[p.challengeId] = p.approvalStatus;
+    });
+
+    const enriched = challenges.map(c => ({
+      ...c,
+      participationStatus: partMap[c.id] || null
+    }));
+
+    res.json(enriched);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
@@ -35,13 +51,28 @@ exports.joinChallenge = async (req, res) => {
 exports.getMyParticipations = async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT cp.*, c.title AS "challengeTitle", c.xp, c.difficulty, c.description AS "challengeDescription"
+      `SELECT cp.*, c.title AS "challengeTitle", c.xp AS "challengeXp", c.difficulty AS "challengeDifficulty", c.description AS "challengeDescription"
        FROM challengeparticipation cp
        INNER JOIN challenge c ON cp."challengeId" = c.id
        WHERE cp."employeeId" = $1`,
       [req.user.id]
     );
-    res.json(rows);
+    const formatted = rows.map(r => ({
+      id: r.id,
+      challengeId: r.challengeId,
+      employeeId: r.employeeId,
+      progressPct: r.progressPct,
+      proofUrl: r.proofUrl,
+      approvalStatus: r.approvalStatus,
+      xpAwarded: r.xpAwarded,
+      challenge: {
+        title: r.challengeTitle,
+        xp: r.challengeXp,
+        difficulty: r.challengeDifficulty,
+        description: r.challengeDescription
+      }
+    }));
+    res.json(formatted);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
@@ -111,13 +142,27 @@ exports.getBadges = async (req, res) => {
 exports.getMyBadges = async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT eb.*, b.name AS "badgeName", b.description AS "badgeDescription", b.icon, b."unlockRule"
+      `SELECT eb.id, eb."employeeId", eb."badgeId", eb."awardedAt",
+              b.name AS "badgeName", b.description AS "badgeDescription", b.icon, b."unlockRule"
        FROM employeebadge eb
        INNER JOIN badge b ON eb."badgeId" = b.id
        WHERE eb."employeeId" = $1`,
       [req.user.id]
     );
-    res.json(rows);
+    const formatted = rows.map(r => ({
+      id: r.id,
+      employeeId: r.employeeId,
+      badgeId: r.badgeId,
+      awardedAt: r.awardedAt,
+      awarded_at: r.awardedAt,
+      badge: {
+        name: r.badgeName,
+        description: r.badgeDescription,
+        icon: r.icon,
+        unlockRule: r.unlockRule
+      }
+    }));
+    res.json(formatted);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 

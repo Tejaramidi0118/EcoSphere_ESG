@@ -176,6 +176,16 @@ async function seed() {
     );
     const actWorkshopId = actWorkshopRes.rows[0].id;
 
+    await client.query(
+      `INSERT INTO csractivity (title, "categoryId", description, "evidenceRequired", status, "organizationId") VALUES ($1,$2,$3,$4,$5,$6)`,
+      ['Blood Donation Drive', csrCatId, 'Join our quarterly blood donation campaign at the corporate hall. Be a lifesaver!', false, 'Open', orgId]
+    );
+
+    await client.query(
+      `INSERT INTO csractivity (title, "categoryId", description, "evidenceRequired", status, "organizationId") VALUES ($1,$2,$3,$4,$5,$6)`,
+      ['Beach Plastic Collection', csrCatId, 'Help clean the local coast and gather recyclable plastic waste. 1 kg of plastics = 30 XP.', true, 'Open', orgId]
+    );
+
     console.log('Seeding employee participation (streak)...');
     const today = new Date();
     for (let i = 0; i < 5; i++) {
@@ -239,6 +249,16 @@ async function seed() {
       ['Reusable Cup Challenge', chalCatId, 'Avoid single-use paper cups at the cafeteria.', 80, 'Easy', false, '2026-07-20', 'Active', orgId]
     );
     const chalCupId = chalCupRes.rows[0].id;
+
+    await client.query(
+      `INSERT INTO challenge (title, "categoryId", description, xp, difficulty, "evidenceRequired", deadline, status, "organizationId") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      ['Zero Plastic Lunch', chalCatId, 'Choose reusable lunch boxes and avoid purchasing single-use plastic bottles.', 80, 'Easy', false, '2026-07-25', 'Active', orgId]
+    );
+
+    await client.query(
+      `INSERT INTO challenge (title, "categoryId", description, xp, difficulty, "evidenceRequired", deadline, status, "organizationId") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      ['Equipment Standby Shutdown', chalCatId, 'Confirm all monitors, chargers, and desktop equipment are completely powered off at 5 PM.', 50, 'Easy', false, '2026-07-30', 'Active', orgId]
+    );
 
     await client.query(
       `INSERT INTO challengeparticipation ("challengeId","employeeId","progressPct","proofUrl","approvalStatus","xpAwarded") VALUES ($1,$2,$3,$4,$5,$6)`,
