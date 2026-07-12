@@ -1,0 +1,248 @@
+CREATE TABLE IF NOT EXISTS Organization (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  industry VARCHAR(255) NOT NULL,
+  size VARCHAR(255) NOT NULL,
+  country VARCHAR(255) NOT NULL,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS Department (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  code VARCHAR(255) NOT NULL,
+  head VARCHAR(255) NOT NULL,
+  parentDepartmentId INT NULL,
+  employeeCount INT NOT NULL DEFAULT 0,
+  status VARCHAR(255) NOT NULL DEFAULT 'Active',
+  organizationId INT NOT NULL,
+  UNIQUE KEY unique_org_code (organizationId, code),
+  FOREIGN KEY (organizationId) REFERENCES Organization(id) ON DELETE CASCADE,
+  FOREIGN KEY (parentDepartmentId) REFERENCES Department(id) ON DELETE SET NULL,
+  INDEX idx_dept_status (status),
+  INDEX idx_dept_org (organizationId)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS Employee (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  passwordHash VARCHAR(255) NOT NULL,
+  role VARCHAR(255) NOT NULL DEFAULT 'employee',
+  departmentId INT NOT NULL,
+  xpTotal INT NOT NULL DEFAULT 0,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  organizationId INT NOT NULL,
+  FOREIGN KEY (departmentId) REFERENCES Department(id) ON DELETE RESTRICT,
+  FOREIGN KEY (organizationId) REFERENCES Organization(id) ON DELETE CASCADE,
+  INDEX idx_emp_org (organizationId)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS Category (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  type VARCHAR(255) NOT NULL,
+  status VARCHAR(255) NOT NULL DEFAULT 'Active'
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS EmissionFactor (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  unit VARCHAR(255) NOT NULL,
+  co2PerUnit DOUBLE NOT NULL,
+  source VARCHAR(255) NOT NULL DEFAULT 'DEFRA 2026'
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS CarbonTransaction (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  departmentId INT NOT NULL,
+  emissionFactorId INT NOT NULL,
+  quantity DOUBLE NOT NULL,
+  co2Calculated DOUBLE NOT NULL,
+  sourceType VARCHAR(255) NOT NULL,
+  date DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (departmentId) REFERENCES Department(id) ON DELETE RESTRICT,
+  FOREIGN KEY (emissionFactorId) REFERENCES EmissionFactor(id) ON DELETE RESTRICT,
+  INDEX idx_tx_dept (departmentId),
+  INDEX idx_tx_date (date)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS EnvironmentalGoal (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  departmentId INT NOT NULL,
+  targetCo2 DOUBLE NOT NULL,
+  currentCo2 DOUBLE NOT NULL DEFAULT 0.0,
+  deadline DATETIME NOT NULL,
+  status VARCHAR(255) NOT NULL DEFAULT 'Active',
+  FOREIGN KEY (departmentId) REFERENCES Department(id) ON DELETE RESTRICT,
+  INDEX idx_goal_dept (departmentId),
+  INDEX idx_goal_status (status)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS ESGPolicy (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  departmentId INT NULL,
+  version VARCHAR(255) NOT NULL DEFAULT '1.0',
+  status VARCHAR(255) NOT NULL DEFAULT 'Active',
+  organizationId INT NOT NULL,
+  FOREIGN KEY (departmentId) REFERENCES Department(id) ON DELETE SET NULL,
+  FOREIGN KEY (organizationId) REFERENCES Organization(id) ON DELETE CASCADE,
+  INDEX idx_policy_org (organizationId)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS PolicyAcknowledgement (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  policyId INT NOT NULL,
+  employeeId INT NOT NULL,
+  acknowledgedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (policyId) REFERENCES ESGPolicy(id) ON DELETE CASCADE,
+  FOREIGN KEY (employeeId) REFERENCES Employee(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS Audit (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  departmentId INT NOT NULL,
+  auditorName VARCHAR(255) NOT NULL,
+  date DATETIME NOT NULL,
+  findingsSummary TEXT NOT NULL,
+  status VARCHAR(255) NOT NULL DEFAULT 'Scheduled',
+  FOREIGN KEY (departmentId) REFERENCES Department(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS ComplianceIssue (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  auditId INT NULL,
+  title VARCHAR(255) NOT NULL,
+  severity VARCHAR(255) NOT NULL,
+  departmentId INT NOT NULL,
+  ownerEmployeeId INT NOT NULL,
+  dueDate DATETIME NOT NULL,
+  status VARCHAR(255) NOT NULL DEFAULT 'Open',
+  description TEXT NOT NULL,
+  FOREIGN KEY (auditId) REFERENCES Audit(id) ON DELETE SET NULL,
+  FOREIGN KEY (departmentId) REFERENCES Department(id) ON DELETE RESTRICT,
+  FOREIGN KEY (ownerEmployeeId) REFERENCES Employee(id) ON DELETE RESTRICT,
+  INDEX idx_comp_status (status),
+  INDEX idx_comp_dept (departmentId),
+  INDEX idx_comp_due (dueDate)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS CSRActivity (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  categoryId INT NOT NULL,
+  description TEXT NOT NULL,
+  evidenceRequired BOOLEAN NOT NULL DEFAULT TRUE,
+  status VARCHAR(255) NOT NULL DEFAULT 'Open',
+  organizationId INT NOT NULL,
+  FOREIGN KEY (categoryId) REFERENCES Category(id) ON DELETE RESTRICT,
+  FOREIGN KEY (organizationId) REFERENCES Organization(id) ON DELETE CASCADE,
+  INDEX idx_csr_org (organizationId)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS EmployeeParticipation (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId INT NOT NULL,
+  csrActivityId INT NOT NULL,
+  proofUrl VARCHAR(255) NULL,
+  approvalStatus VARCHAR(255) NOT NULL DEFAULT 'Pending',
+  pointsEarned INT NOT NULL DEFAULT 0,
+  completionDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (employeeId) REFERENCES Employee(id) ON DELETE CASCADE,
+  FOREIGN KEY (csrActivityId) REFERENCES CSRActivity(id) ON DELETE CASCADE,
+  INDEX idx_part_status (approvalStatus)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS Challenge (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  categoryId INT NOT NULL,
+  description TEXT NOT NULL,
+  xp INT NOT NULL,
+  difficulty VARCHAR(255) NOT NULL,
+  evidenceRequired BOOLEAN NOT NULL DEFAULT TRUE,
+  deadline DATETIME NOT NULL,
+  status VARCHAR(255) NOT NULL DEFAULT 'Draft',
+  organizationId INT NOT NULL,
+  FOREIGN KEY (categoryId) REFERENCES Category(id) ON DELETE RESTRICT,
+  FOREIGN KEY (organizationId) REFERENCES Organization(id) ON DELETE CASCADE,
+  INDEX idx_chal_status (status),
+  INDEX idx_chal_org (organizationId)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS ChallengeParticipation (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  challengeId INT NOT NULL,
+  employeeId INT NOT NULL,
+  progressPct DOUBLE NOT NULL DEFAULT 0.0,
+  proofUrl VARCHAR(255) NULL,
+  approvalStatus VARCHAR(255) NOT NULL DEFAULT 'Pending',
+  xpAwarded INT NOT NULL DEFAULT 0,
+  FOREIGN KEY (challengeId) REFERENCES Challenge(id) ON DELETE CASCADE,
+  FOREIGN KEY (employeeId) REFERENCES Employee(id) ON DELETE CASCADE,
+  INDEX idx_chal_part_status (approvalStatus)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS Badge (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description VARCHAR(255) NOT NULL,
+  icon VARCHAR(255) NOT NULL,
+  unlockRule VARCHAR(255) NOT NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS EmployeeBadge (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId INT NOT NULL,
+  badgeId INT NOT NULL,
+  awardedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (employeeId) REFERENCES Employee(id) ON DELETE CASCADE,
+  FOREIGN KEY (badgeId) REFERENCES Badge(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS Reward (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description VARCHAR(255) NOT NULL,
+  pointsRequired INT NOT NULL,
+  stock INT NOT NULL,
+  status VARCHAR(255) NOT NULL DEFAULT 'Active',
+  organizationId INT NOT NULL,
+  FOREIGN KEY (organizationId) REFERENCES Organization(id) ON DELETE CASCADE,
+  INDEX idx_rew_org (organizationId)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS RewardRedemption (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId INT NOT NULL,
+  rewardId INT NOT NULL,
+  redeemedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  pointsDeducted INT NOT NULL,
+  FOREIGN KEY (employeeId) REFERENCES Employee(id) ON DELETE CASCADE,
+  FOREIGN KEY (rewardId) REFERENCES Reward(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS DepartmentScore (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  departmentId INT NOT NULL,
+  envScore DOUBLE NOT NULL DEFAULT 0.0,
+  socialScore DOUBLE NOT NULL DEFAULT 0.0,
+  govScore DOUBLE NOT NULL DEFAULT 0.0,
+  totalScore DOUBLE NOT NULL DEFAULT 0.0,
+  computedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (departmentId) REFERENCES Department(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS Notification (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId INT NULL,
+  type VARCHAR(255) NOT NULL,
+  message VARCHAR(255) NOT NULL,
+  isRead BOOLEAN NOT NULL DEFAULT FALSE,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (employeeId) REFERENCES Employee(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

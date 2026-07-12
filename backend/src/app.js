@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const prisma = require('./db');
+const db = require('./db');
 const authRoutes = require('./routes/auth.routes');
 const environmentalRoutes = require('./routes/environmental.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
@@ -24,11 +24,11 @@ const { verifyToken } = require('./middleware/auth');
 
 app.get('/api/departments', verifyToken, async (req, res) => {
   try {
-    const depts = await prisma.department.findMany({
-      where: { organizationId: req.user.organizationId },
-      orderBy: { name: 'asc' },
-    });
-    return res.json(depts);
+    const { rows } = await db.query(
+      `SELECT * FROM department WHERE "organizationId" = $1 ORDER BY name ASC`,
+      [req.user.organizationId]
+    );
+    return res.json(rows);
   } catch (err) {
     console.error('Fetch departments error:', err);
     return res.status(500).json({ error: 'Failed to fetch departments' });
@@ -37,24 +37,23 @@ app.get('/api/departments', verifyToken, async (req, res) => {
 
 app.get('/api/health', async (req, res) => {
   try {
-    // Check DB connection
-    await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: 'ok', database: 'connected' });
-  } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
+    await db.query('SELECT 1');
+    res.json({ status: 'ok', database: 'Supabase PostgreSQL connected' });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
   }
 });
 
 const PORT = process.env.PORT || 5555;
 const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT} — connected to Supabase`);
 });
 
-// Close Prisma client and server gracefully on process exit
+// Graceful shutdown
 process.on('SIGTERM', () => {
   server.close(() => {
-    prisma.$disconnect();
-    console.log('Server and database client shutdown complete.');
+    db.end();
+    console.log('Server and Supabase pool shut down.');
   });
 });
 

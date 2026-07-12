@@ -8,6 +8,7 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
+  const [expandedDeptId, setExpandedDeptId] = useState(null);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -128,7 +129,7 @@ export default function Dashboard() {
         {/* Layout details */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           
-          {/* Department Rankings */}
+          {/* Department Rankings Accordion */}
           <div style={{
             background: "var(--surface)", border: "1px solid var(--border)",
             borderRadius: "var(--radius-lg)", padding: 28, boxShadow: "var(--shadow)"
@@ -138,30 +139,58 @@ export default function Dashboard() {
               <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500 }}>Weighted Total</span>
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {data.department_ranking?.map((d, index) => (
-                <div key={d.departmentId} style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "12px 14px", background: "var(--bg)", borderRadius: "var(--radius-sm)",
-                  border: "1px solid var(--border)"
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{
-                      width: 24, height: 24, borderRadius: "50%", background: index === 0 ? "var(--forest-tint)" : "var(--surface-sunken)",
-                      color: index === 0 ? "var(--forest-light)" : "var(--text-secondary)", fontSize: 12, fontWeight: 700,
-                      display: "flex", alignItems: "center", justifyContent: "center"
-                    }}>
-                      {index + 1}
-                    </span>
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>Department {d.departmentId}</span>
-                  </div>
-                  <span style={{
-                    fontWeight: 700, fontSize: 14, color: d.totalScore >= 50 ? "var(--forest-light)" : "var(--text-secondary)",
-                    background: "var(--surface)", padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)"
+              {data.department_ranking?.map((d, index) => {
+                const isExpanded = expandedDeptId === d.departmentId;
+                return (
+                  <div key={d.departmentId} style={{
+                    background: "var(--bg)", borderRadius: "var(--radius-sm)",
+                    border: "1px solid var(--border)", padding: "12px 14px"
                   }}>
-                    {d.totalScore} / 100
-                  </span>
-                </div>
-              ))}
+                    {/* Header Row */}
+                    <div 
+                      onClick={() => setExpandedDeptId(isExpanded ? null : d.departmentId)}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <span style={{
+                          width: 24, height: 24, borderRadius: "50%", background: index === 0 ? "var(--forest-tint)" : "var(--surface-sunken)",
+                          color: index === 0 ? "var(--forest-light)" : "var(--text-secondary)", fontSize: 12, fontWeight: 700,
+                          display: "flex", alignItems: "center", justifyContent: "center"
+                        }}>
+                          {index + 1}
+                        </span>
+                        <span style={{ fontWeight: 600, fontSize: 14 }}>{d.departmentName || `Department ${d.departmentId}`}</span>
+                        <span style={{ fontSize: 10, color: "var(--text-muted)", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }}>▶</span>
+                      </div>
+                      <span style={{
+                        fontWeight: 700, fontSize: 14, color: d.totalScore >= 50 ? "var(--forest-light)" : "var(--text-secondary)",
+                        background: "var(--surface)", padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)"
+                      }}>
+                        {d.totalScore} / 100
+                      </span>
+                    </div>
+
+                    {/* Expandable Employees Sub-List */}
+                    {isExpanded && (
+                      <div style={{
+                        marginTop: 12, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 8,
+                        borderLeft: "2px solid var(--forest-light)", paddingBottom: 4
+                      }}>
+                        {d.employees?.length === 0 ? (
+                          <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>No employees in this department.</span>
+                        ) : (
+                          d.employees?.map((emp) => (
+                            <div key={emp.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
+                              <span style={{ color: "var(--text-secondary)" }}>🏅 {emp.name}</span>
+                              <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>{emp.xpTotal} XP</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -361,7 +390,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Right Side: Department Duel Leaderboard */}
+        {/* Right Side: Department Duel Leaderboard with Accordion nesting */}
         <div style={{
           background: "var(--surface)", border: "1px solid var(--border)",
           borderRadius: "var(--radius-lg)", padding: 28, boxShadow: "var(--shadow)"
@@ -373,29 +402,58 @@ export default function Dashboard() {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {data.department_ranking?.map((d, index) => {
               const isUserDept = user?.departmentId === d.departmentId;
+              const isExpanded = expandedDeptId === d.departmentId;
               return (
                 <div key={d.departmentId} style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "12px 14px", borderRadius: "var(--radius-sm)",
+                  borderRadius: "var(--radius-sm)",
                   background: isUserDept ? "var(--forest-tint)" : "var(--bg)",
-                  border: isUserDept ? "1px solid var(--forest-light)" : "1px solid var(--border)"
+                  border: isUserDept ? "1px solid var(--forest-light)" : "1px solid var(--border)",
+                  padding: "12px 14px"
                 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{
-                      width: 22, height: 22, borderRadius: "50%",
-                      background: index === 0 ? "#FEF3C7" : isUserDept ? "var(--forest)" : "var(--surface-sunken)",
-                      color: index === 0 ? "#B45309" : isUserDept ? "#fff" : "var(--text-secondary)",
-                      fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center"
-                    }}>
-                      {index + 1}
-                    </span>
-                    <span style={{ fontWeight: isUserDept ? 700 : 600, fontSize: 13.5 }}>
-                      Department {d.departmentId} {isUserDept && "(You)"}
+                  {/* Header Row */}
+                  <div 
+                    onClick={() => setExpandedDeptId(isExpanded ? null : d.departmentId)}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{
+                        width: 22, height: 22, borderRadius: "50%",
+                        background: index === 0 ? "#FEF3C7" : isUserDept ? "var(--forest)" : "var(--surface-sunken)",
+                        color: index === 0 ? "#B45309" : isUserDept ? "#fff" : "var(--text-secondary)",
+                        fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center"
+                      }}>
+                        {index + 1}
+                      </span>
+                      <span style={{ fontWeight: isUserDept ? 700 : 600, fontSize: 13.5 }}>
+                        {d.departmentName || `Department ${d.departmentId}`} {isUserDept && "(You)"}
+                      </span>
+                      <span style={{ fontSize: 9, color: "var(--text-muted)", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }}>▶</span>
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
+                      {d.totalScore} pts
                     </span>
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
-                    {d.totalScore} pts
-                  </span>
+
+                  {/* Expandable Employees list */}
+                  {isExpanded && (
+                    <div style={{
+                      marginTop: 12, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 8,
+                      borderLeft: "2px solid var(--forest-light)", paddingBottom: 4
+                    }}>
+                      {d.employees?.length === 0 ? (
+                        <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>No employees in this department.</span>
+                      ) : (
+                        d.employees?.map((emp) => (
+                          <div key={emp.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
+                            <span style={{ color: "var(--text-secondary)", fontWeight: emp.id === user?.id ? 700 : 500 }}>
+                              🏅 {emp.name} {emp.id === user?.id && " (You)"}
+                            </span>
+                            <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>{emp.xpTotal} XP</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -1,51 +1,85 @@
 const db = require('../db');
 
-// Environmental score: average goal progress % across a department's goals, capped at 100
+// Environmental: average goal-progress % for dept's goals (higher = better, means under target)
 async function computeEnvScore(departmentId) {
-  const goals = await db.environmentalGoal.findMany({ where: { departmentId } });
-  if (goals.length === 0) return 0;
-  const progressSum = goals.reduce((sum, g) => {
-    // goal is "reduce to target" so progress% = how close currentCo2 has come down toward target from a baseline
-    // if currentCo2 <= targetCo2, goal met (100%), else scaled
-    const simplePct = g.currentCo2 <= g.targetCo2 ? 100 : Math.max(0, 100 - ((g.currentCo2 - g.targetCo2) / g.targetCo2) * 100);
-    return sum + simplePct;
-  }, 0);
-  return Math.round(progressSum / goals.length);
-}
-
-// Social score: % of CSR participations Approved (out of all participations for dept's employees)
-async function computeSocialScore(departmentId) {
-  const participations = await db.employeeParticipation.findMany({
-    where: { employee: { departmentId } },
-  });
-  if (participations.length === 0) return 0;
-  const approved = participations.filter(p => p.approvalStatus === 'Approved').length;
-  return Math.round((approved / participations.length) * 100);
-}
-
-// Governance score: % policies acknowledged minus penalty per open compliance issue
-async function computeGovScore(departmentId, organizationId) {
-  const policies = await db.eSGPolicy.findMany({
-    where: {
-      organizationId,
-      OR: [{ departmentId }, { departmentId: null }],
-    },
-  });
-  const employees = await db.employee.findMany({ where: { departmentId } });
-  let ackRate = 100;
-  if (policies.length > 0 && employees.length > 0) {
-    const totalExpected = policies.length * employees.length;
-    const acks = await db.policyAcknowledgement.count({
-      where: { policyId: { in: policies.map(p => p.id) }, employeeId: { in: employees.map(e => e.id) } },
-    });
-    ackRate = Math.round((acks / totalExpected) * 100);
+  try {
+    const { rows } = await db.query(
+      `SELECT "currentCo2", "targetCo2" FROM environmentalgoal WHERE "departmentId" = $1`,
+      [departmentId]
+    );
+    if (rows.length === 0) return 0;
+    const sum = rows.reduce((acc, g) => {
+      const pct = g.currentCo2 <= g.targetCo2
+        ? 100
+        : Math.max(0, 100 - ((g.currentCo2 - g.targetCo2) / g.targetCo2) * 100);
+      return acc + pct;
+    }, 0);
+    return Math.round(sum / rows.length);
+  } catch (err) {
+    console.error('computeEnvScore error:', err);
+    return 0;
   }
-  const openIssues = await db.complianceIssue.count({ where: { departmentId, status: 'Open' } });
-  const penalty = Math.min(50, openIssues * 10); // each open issue costs 10 points, capped
-  return Math.max(0, ackRate - penalty);
 }
 
-// Weights — configurable later via Settings, hardcoded default for now
+// Social: % of dept employees' participations that are Approved
+async function computeSocialScore(departmentId) {
+  try {
+    const { rows } = await db.query(
+      `SELECT p."approvalStatus"
+       FROM employeeparticipation p
+       INNER JOIN employee e ON p."employeeId" = e.id
+       WHERE e."departmentId" = $1`,
+      [departmentId]
+    );
+    if (rows.length === 0) return 0;
+    const approved = rows.filter(r => r.approvalStatus === 'Approved').length;
+    return Math.round((approved / rows.length) * 100);
+  } catch (err) {
+    console.error('computeSocialScore error:', err);
+    return 0;
+  }
+}
+
+// Governance: acknowledgement rate minus open compliance issue penalty
+async function computeGovScore(departmentId, organizationId) {
+  try {
+    const { rows: policies } = await db.query(
+      `SELECT id FROM esgpolicy WHERE "organizationId" = $1 AND ("departmentId" = $2 OR "departmentId" IS NULL)`,
+      [organizationId, departmentId]
+    );
+    const { rows: employees } = await db.query(
+      `SELECT id FROM employee WHERE "departmentId" = $1`,
+      [departmentId]
+    );
+
+    let ackRate = 100;
+    if (policies.length > 0 && employees.length > 0) {
+      const totalExpected = policies.length * employees.length;
+      const policyIds = policies.map(p => p.id);
+      const employeeIds = employees.map(e => e.id);
+
+      // PostgreSQL uses ANY($1) for array containment
+      const { rows: ackRows } = await db.query(
+        `SELECT COUNT(id) AS count FROM policyacknowledgement WHERE "policyId" = ANY($1) AND "employeeId" = ANY($2)`,
+        [policyIds, employeeIds]
+      );
+      const acks = parseInt(ackRows[0]?.count || 0, 10);
+      ackRate = Math.round((acks / totalExpected) * 100);
+    }
+
+    const { rows: issueRows } = await db.query(
+      `SELECT COUNT(id) AS count FROM complianceissue WHERE "departmentId" = $1 AND status = 'Open'`,
+      [departmentId]
+    );
+    const openIssues = parseInt(issueRows[0]?.count || 0, 10);
+    const penalty = Math.min(50, openIssues * 10);
+    return Math.max(0, ackRate - penalty);
+  } catch (err) {
+    console.error('computeGovScore error:', err);
+    return 0;
+  }
+}
+
 const WEIGHTS = { env: 0.4, social: 0.3, gov: 0.3 };
 
 async function computeDepartmentScore(departmentId, organizationId) {
@@ -54,33 +88,39 @@ async function computeDepartmentScore(departmentId, organizationId) {
     computeSocialScore(departmentId),
     computeGovScore(departmentId, organizationId),
   ]);
-  const totalScore = Math.round(
-    envScore * WEIGHTS.env + socialScore * WEIGHTS.social + govScore * WEIGHTS.gov
+
+  const totalScore = Math.round(envScore * WEIGHTS.env + socialScore * WEIGHTS.social + govScore * WEIGHTS.gov);
+
+  const { rows: depts } = await db.query('SELECT name FROM department WHERE id = $1', [departmentId]);
+  const deptName = depts[0]?.name || `Department ${departmentId}`;
+
+  const { rows: employees } = await db.query(
+    `SELECT id, name, "xpTotal" FROM employee WHERE "departmentId" = $1 ORDER BY "xpTotal" DESC`,
+    [departmentId]
   );
-  return { departmentId, envScore, socialScore, govScore, totalScore };
+
+  return { departmentId, departmentName: deptName, envScore, socialScore, govScore, totalScore, employees };
 }
 
 async function computeOverallScore(organizationId) {
-  if (!organizationId) {
-    throw new Error('organizationId is required to compute ESG scores.');
-  }
+  if (!organizationId) throw new Error('organizationId is required.');
 
-  const departments = await db.department.findMany({ where: { organizationId, status: 'Active' } });
+  const { rows: departments } = await db.query(
+    `SELECT id FROM department WHERE "organizationId" = $1 AND status = 'Active'`,
+    [organizationId]
+  );
+
   const scores = await Promise.all(departments.map(d => computeDepartmentScore(d.id, organizationId)));
+  const sortedScores = scores.sort((a, b) => b.totalScore - a.totalScore);
+
   const avg = (key) => Math.round(scores.reduce((sum, d) => sum + d[key], 0) / (scores.length || 1));
   return {
     environmental: avg('envScore'),
     social: avg('socialScore'),
     governance: avg('govScore'),
     overall: avg('totalScore'),
-    byDepartment: scores,
+    byDepartment: sortedScores,
   };
 }
 
-module.exports = {
-  computeDepartmentScore,
-  computeOverallScore,
-  computeEnvScore,
-  computeSocialScore,
-  computeGovScore,
-};
+module.exports = { computeDepartmentScore, computeOverallScore, computeEnvScore, computeSocialScore, computeGovScore };

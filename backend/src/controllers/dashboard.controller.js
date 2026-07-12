@@ -4,33 +4,28 @@ const db = require('../db');
 async function getSummary(req, res) {
   try {
     const orgId = req.user.organizationId;
-    if (!orgId) {
-      return res.status(400).json({ error: 'Organization ID is missing from user session.' });
-    }
+    if (!orgId) return res.status(400).json({ error: 'Organization ID is missing from user session.' });
 
     const scores = await computeOverallScore(orgId);
 
-    // Group emissions by date, scoped to the current organization
-    const emissionsTrend = await db.carbonTransaction.groupBy({
-      by: ['date'],
-      where: {
-        department: { organizationId: orgId }
-      },
-      _sum: { co2Calculated: true },
-      orderBy: { date: 'asc' },
-    });
+    const { rows: emissionsRows } = await db.query(
+      `SELECT DATE(t.date) AS date, SUM(t."co2Calculated") AS co2
+       FROM carbontransaction t
+       INNER JOIN department d ON t."departmentId" = d.id
+       WHERE d."organizationId" = $1
+       GROUP BY DATE(t.date)
+       ORDER BY DATE(t.date) ASC`,
+      [orgId]
+    );
 
-    // Retrieve recent notifications, scoped to organization or global broadcasts
-    const recentActivity = await db.notification.findMany({
-      where: {
-        OR: [
-          { employeeId: null },
-          { employee: { organizationId: orgId } }
-        ]
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    });
+    const { rows: activityRows } = await db.query(
+      `SELECT n.* FROM notification n
+       WHERE n."employeeId" IS NULL
+          OR n."employeeId" IN (SELECT id FROM employee WHERE "organizationId" = $1)
+       ORDER BY n."createdAt" DESC
+       LIMIT 5`,
+      [orgId]
+    );
 
     return res.json({
       environmental_score: scores.environmental,
@@ -38,14 +33,11 @@ async function getSummary(req, res) {
       governance_score: scores.governance,
       overall_score: scores.overall,
       department_ranking: scores.byDepartment,
-      emissions_trend: emissionsTrend.map(t => ({
-        date: t.date,
-        co2: t._sum.co2Calculated,
-      })),
-      recent_activity: recentActivity,
+      emissions_trend: emissionsRows.map(t => ({ date: t.date, co2: t.co2 })),
+      recent_activity: activityRows,
     });
   } catch (err) {
-    console.error('Failed to compute dashboard summary:', err);
+    console.error('Dashboard summary error:', err);
     return res.status(500).json({ error: 'Failed to compute dashboard summary' });
   }
 }
