@@ -91,6 +91,11 @@ export default function Profile() {
             <span style={{ opacity: 0.8 }}>Sustainability XP:</span>
             <span style={{ fontWeight: 700 }}>{profile?.xpTotal || 0} XP</span>
           </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", width: "100%", fontSize: 13, marginTop: 8 }}>
+            <span style={{ opacity: 0.8 }}>Active Login Streak:</span>
+            <span style={{ fontWeight: 700 }}>🔥 {profile?.streakDays || 0} Days</span>
+          </div>
         </div>
 
         {/* Account Details Box */}

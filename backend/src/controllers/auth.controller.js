@@ -2,6 +2,52 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../db');
 
+// Helper to format date as local YYYY-MM-DD
+const formatDateStr = (d) => {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+// Calculate user check-in streak dynamically from approved employee participations
+const calculateUserStreak = async (employeeId) => {
+  try {
+    const completions = await prisma.employeeParticipation.findMany({
+      where: { employeeId, approvalStatus: 'Approved' },
+      select: { completionDate: true }
+    });
+
+    if (completions.length === 0) return 0;
+
+    const dates = new Set();
+    completions.forEach(c => {
+      if (c.completionDate) {
+        dates.add(formatDateStr(c.completionDate));
+      }
+    });
+
+    let streak = 0;
+    let checkDate = new Date();
+    
+    // If no check-in today, check if yesterday had one to maintain streak
+    let hasActivityToday = dates.has(formatDateStr(checkDate));
+    if (!hasActivityToday) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    while (dates.has(formatDateStr(checkDate))) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    return streak;
+  } catch (error) {
+    console.error('Error calculating streak:', error);
+    return 0;
+  }
+};
+
 const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -36,6 +82,8 @@ const login = async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    const streakDays = await calculateUserStreak(employee.id);
+
     return res.json({
       token,
       user: {
@@ -47,6 +95,7 @@ const login = async (req, res) => {
         departmentName: employee.department?.name,
         organizationId: employee.organizationId,
         xpTotal: employee.xpTotal,
+        streakDays,
       },
     });
   } catch (error) {
@@ -80,7 +129,14 @@ const me = async (req, res) => {
       return res.status(404).json({ error: 'User not found.' });
     }
 
-    return res.json({ user: employee });
+    const streakDays = await calculateUserStreak(employee.id);
+
+    return res.json({
+      user: {
+        ...employee,
+        streakDays,
+      }
+    });
   } catch (error) {
     console.error('Get profile error:', error);
     return res.status(500).json({ error: 'An error occurred fetching user profile.' });

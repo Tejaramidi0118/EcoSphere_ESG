@@ -10,10 +10,24 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Read logged-in user profile from localStorage
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
+    }
+
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetch("http://localhost:5555/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && data.user) {
+            setUser(data.user);
+            localStorage.setItem("user", JSON.stringify(data.user));
+          }
+        })
+        .catch((err) => console.error("Error updating user context:", err));
     }
 
     getDashboardSummary()
@@ -79,7 +93,7 @@ export default function Dashboard() {
       <div style={{ padding: 40, maxWidth: 1200, margin: "0 auto" }} className="fade-in-up">
         
         {/* Admin Header */}
-        <header style={{ marginBottom: 36 }}>
+        <header style={{ marginBottom: 30 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <div>
               <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--forest-light)" }}>Platform Dashboard</span>
@@ -90,6 +104,18 @@ export default function Dashboard() {
             </span>
           </div>
         </header>
+
+        {/* Sustainability Coach Box for Admin */}
+        <div style={{
+          background: "var(--surface)", border: "1px solid var(--border)",
+          borderRadius: "var(--radius-lg)", padding: "16px 20px", marginBottom: 30,
+          display: "flex", gap: 14, alignItems: "center", boxShadow: "var(--shadow-sm)"
+        }}>
+          <span style={{ fontSize: 24 }}>💡</span>
+          <div style={{ fontSize: 13.5, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+            <strong>Sustainability Coach recommendations:</strong> Logistics travel emissions increased by 14% this month. Launch a <em>"Public Commuter challenge"</em> to encourage staff transport checks and lower overall footprints by an estimated 450 kg.
+          </div>
+        </div>
 
         {/* Score metrics */}
         <div style={{ display: "flex", gap: 20, marginBottom: 36 }}>
@@ -186,12 +212,21 @@ export default function Dashboard() {
             {getGreeting()}, {user?.name || "Eco-Warrior"}! 🌳
           </h1>
         </div>
-        <div style={{
-          background: "var(--surface)", border: "1px solid var(--border)",
-          padding: "8px 16px", borderRadius: "var(--radius)", fontSize: 13, display: "flex", gap: 8, alignItems: "center"
-        }}>
-          <span style={{ width: 8, height: 8, background: "#10B981", borderRadius: "50%" }} />
-          Department: <strong>{user?.departmentName || "General Staff"}</strong>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          {/* Green Streak Tracker Badge */}
+          <div style={{
+            background: "var(--amber-tint)", color: "#B45309", border: "1px solid #FDE68A",
+            padding: "8px 16px", borderRadius: "var(--radius)", fontSize: 13, display: "flex", gap: 6, alignItems: "center", fontWeight: 700
+          }}>
+            🔥 {user?.streakDays || 0} Day Streak
+          </div>
+          <div style={{
+            background: "var(--surface)", border: "1px solid var(--border)",
+            padding: "8px 16px", borderRadius: "var(--radius)", fontSize: 13, display: "flex", gap: 8, alignItems: "center"
+          }}>
+            <span style={{ width: 8, height: 8, background: "#10B981", borderRadius: "50%" }} />
+            Department: <strong>{user?.departmentName || "General Staff"}</strong>
+          </div>
         </div>
       </header>
 
@@ -257,57 +292,72 @@ export default function Dashboard() {
       <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 24 }}>
         
         {/* Left Side: Active Quests */}
-        <div style={{
-          background: "var(--surface)", border: "1px solid var(--border)",
-          borderRadius: "var(--radius-lg)", padding: 28, boxShadow: "var(--shadow)"
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Today's Carbon Quests</h3>
-            <button
-              onClick={() => navigate("/gamification/challenges")}
-              style={{ background: "none", border: "none", color: "var(--forest-light)", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
-            >
-              View all
-            </button>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          
+          {/* Sustainability Coach Box for Employees */}
+          <div style={{
+            background: "var(--surface)", border: "1px solid var(--border)",
+            borderRadius: "var(--radius-lg)", padding: "16px 20px", marginBottom: 24,
+            display: "flex", gap: 14, alignItems: "center", boxShadow: "var(--shadow-sm)"
+          }}>
+            <span style={{ fontSize: 24 }}>💡</span>
+            <div style={{ fontSize: 13.5, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+              <strong>Sustainability Coach:</strong> You are only 120 XP away from unlocking your next rank, <strong>Sapling 🌿</strong>! Complete today's <em>"Cycle to work"</em> challenge to level up your green tree avatar.
+            </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {[
-              { title: "Cycle to work", difficulty: "Medium", reward: "150 XP", desc: "Commute using public transit, carpool, or cycle to work instead of private car." },
-              { title: "Zero Plastic Lunch", difficulty: "Easy", reward: "80 XP", desc: "Choose reusable lunch boxes and avoid purchasing single-use plastic bottles." },
-              { title: "Equipment Standby Shutdown", difficulty: "Easy", reward: "50 XP", desc: "Confirm all monitors, chargers, and desktop equipment are completely powered off at 5 PM." }
-            ].map((q, idx) => (
-              <div key={idx} style={{
-                padding: 16, background: "var(--bg)", border: "1px solid var(--border)",
-                borderRadius: "var(--radius-sm)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>{q.title}</span>
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, background: q.difficulty === "Easy" ? "var(--forest-tint)" : "var(--amber-tint)",
-                      color: q.difficulty === "Easy" ? "var(--forest-light)" : "#B45309", padding: "2px 6px", borderRadius: 4
-                    }}>
-                      {q.difficulty}
-                    </span>
+          <div style={{
+            background: "var(--surface)", border: "1px solid var(--border)",
+            borderRadius: "var(--radius-lg)", padding: 28, boxShadow: "var(--shadow)"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Today's Carbon Quests</h3>
+              <button
+                onClick={() => navigate("/gamification/challenges")}
+                style={{ background: "none", border: "none", color: "var(--forest-light)", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
+              >
+                View all
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {[
+                { title: "Cycle to work", difficulty: "Medium", reward: "150 XP", desc: "Commute using public transit, carpool, or cycle to work instead of private car." },
+                { title: "Zero Plastic Lunch", difficulty: "Easy", reward: "80 XP", desc: "Choose reusable lunch boxes and avoid purchasing single-use plastic bottles." },
+                { title: "Equipment Standby Shutdown", difficulty: "Easy", reward: "50 XP", desc: "Confirm all monitors, chargers, and desktop equipment are completely powered off at 5 PM." }
+              ].map((q, idx) => (
+                <div key={idx} style={{
+                  padding: 16, background: "var(--bg)", border: "1px solid var(--border)",
+                  borderRadius: "var(--radius-sm)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontWeight: 700, fontSize: 14 }}>{q.title}</span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, background: q.difficulty === "Easy" ? "var(--forest-tint)" : "var(--amber-tint)",
+                        color: q.difficulty === "Easy" ? "var(--forest-light)" : "#B45309", padding: "2px 6px", borderRadius: 4
+                      }}>
+                        {q.difficulty}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 12.5, color: "var(--text-secondary)", margin: 0, lineHeight: 1.4 }}>{q.desc}</p>
                   </div>
-                  <p style={{ fontSize: 12.5, color: "var(--text-secondary)", margin: 0, lineHeight: 1.4 }}>{q.desc}</p>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: "var(--forest-light)" }}>+{q.reward}</span>
+                    <button
+                      onClick={() => navigate("/gamification/challenges")}
+                      style={{
+                        background: "var(--forest)", color: "#fff", border: "none",
+                        borderRadius: "var(--radius-sm)", padding: "6px 12px", fontSize: 11,
+                        fontWeight: 700, cursor: "pointer"
+                      }}
+                    >
+                      Participate
+                    </button>
+                  </div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--forest-light)" }}>+{q.reward}</span>
-                  <button
-                    onClick={() => navigate("/gamification/challenges")}
-                    style={{
-                      background: "var(--forest)", color: "#fff", border: "none",
-                      borderRadius: "var(--radius-sm)", padding: "6px 12px", fontSize: 11,
-                      fontWeight: 700, cursor: "pointer"
-                    }}
-                  >
-                    Participate
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 

@@ -318,7 +318,23 @@ async function main() {
     },
   });
 
-  console.log('Seeding employee participation...');
+  console.log('Seeding employee participation & streak history...');
+  const today = new Date();
+  for (let i = 0; i < 5; i++) {
+    const checkDate = new Date();
+    checkDate.setDate(today.getDate() - i);
+    await prisma.employeeParticipation.create({
+      data: {
+        employeeId: aditi.id,
+        csrActivityId: actWorkshop.id,
+        proofUrl: `streak_day_${5 - i}.pdf`,
+        approvalStatus: 'Approved',
+        pointsEarned: 20,
+        completionDate: checkDate,
+      },
+    });
+  }
+
   await prisma.employeeParticipation.create({
     data: {
       employeeId: aditi.id,
@@ -326,7 +342,7 @@ async function main() {
       proofUrl: 'tree_sapling_aditi.jpg',
       approvalStatus: 'Pending',
       pointsEarned: 50,
-      completionDate: new Date(),
+      completionDate: today,
     },
   });
 
