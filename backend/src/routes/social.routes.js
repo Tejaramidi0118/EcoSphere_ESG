@@ -10,6 +10,6 @@ router.post('/csr-activities', isAdmin, socialController.createCSRActivity);
 router.post('/participation', socialController.joinActivity);
 router.get('/participation', isAdmin, socialController.getParticipations);
 router.put('/participation/:id/approve', isAdmin, socialController.approveParticipation);
-router.put('/participation/:id/reject', isAdmin, socialController.approveParticipation);
+router.put('/participation/:id/reject', isAdmin, socialController.rejectParticipation);
 
 module.exports = router;
