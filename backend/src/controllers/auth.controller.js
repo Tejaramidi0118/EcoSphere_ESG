@@ -138,15 +138,6 @@ const registerOrganization = async (req, res) => {
         },
       });
 
-      // 4. Create other default departments (optional convenience)
-      await tx.department.createMany({
-        data: [
-          { name: 'Engineering', code: 'ENG', head: 'TBD', employeeCount: 0, organizationId: org.id },
-          { name: 'Human Resources', code: 'HR', head: 'TBD', employeeCount: 0, organizationId: org.id },
-          { name: 'Sales', code: 'SLS', head: 'TBD', employeeCount: 0, organizationId: org.id },
-        ],
-      });
-
       return { org, adminUser };
     });
 
