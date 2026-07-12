@@ -1,4 +1,4 @@
-const prisma = require('../db');
+const db = require('../db');
 
 let globalConfig = {
   weights: { env: 40, social: 30, gov: 30 },
@@ -17,18 +17,21 @@ exports.updateEsgConfig = async (req, res) => {
 
 exports.getDepartments = async (req, res) => {
   try {
-    const depts = await prisma.department.findMany({
-      where: { organizationId: req.user.organizationId }
-    });
-    res.json(depts);
+    const { rows } = await db.query(
+      `SELECT * FROM department WHERE "organizationId" = $1 ORDER BY name ASC`,
+      [req.user.organizationId]
+    );
+    res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 exports.getCategories = async (req, res) => {
   try {
     const { type } = req.query;
-    const filter = type ? { type } : {};
-    const categories = await prisma.category.findMany({ where: filter });
-    res.json(categories);
+    let sql = 'SELECT * FROM category';
+    const params = [];
+    if (type) { sql += ' WHERE type = $1'; params.push(type); }
+    const { rows } = await db.query(sql, params);
+    res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };

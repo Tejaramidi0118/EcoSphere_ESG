@@ -1,68 +1,83 @@
-const prisma = require('../db');
+const db = require('../db');
 
 exports.getPolicies = async (req, res) => {
   try {
-    const policies = await prisma.eSGPolicy.findMany({
-      where: { organizationId: req.user.organizationId, status: 'Active' },
-      orderBy: { id: 'desc' }
-    });
-    res.json(policies);
+    const { rows } = await db.query(
+      `SELECT * FROM esgpolicy WHERE "organizationId" = $1 AND status = 'Active' ORDER BY id DESC`,
+      [req.user.organizationId]
+    );
+    res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 exports.createPolicy = async (req, res) => {
   try {
-    const policy = await prisma.eSGPolicy.create({
-      data: { ...req.body, organizationId: req.user.organizationId }
-    });
-    res.status(201).json(policy);
+    const { title, description, departmentId, version, status } = req.body;
+    const { rows } = await db.query(
+      `INSERT INTO esgpolicy (title, description, "departmentId", version, status, "organizationId")
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [title, description, departmentId || null, version || '1.0', status || 'Active', req.user.organizationId]
+    );
+    res.status(201).json(rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 exports.acknowledgePolicy = async (req, res) => {
   try {
     const { id } = req.params;
-    const ack = await prisma.policyAcknowledgement.create({
-      data: { policyId: Number(id), employeeId: req.user.id }
-    });
-    res.json(ack);
+    const { rows } = await db.query(
+      `INSERT INTO policyacknowledgement ("policyId", "employeeId") VALUES ($1, $2) RETURNING *`,
+      [Number(id), req.user.id]
+    );
+    res.json(rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 exports.getAcknowledgements = async (req, res) => {
   try {
     const { id } = req.params;
-    const acks = await prisma.policyAcknowledgement.findMany({
-      where: { policyId: Number(id) },
-      include: { employee: true }
-    });
-    res.json(acks);
+    const { rows } = await db.query(
+      `SELECT pa.*, e.name AS "employeeName", e.email AS "employeeEmail"
+       FROM policyacknowledgement pa
+       INNER JOIN employee e ON pa."employeeId" = e.id
+       WHERE pa."policyId" = $1`,
+      [Number(id)]
+    );
+    res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 exports.getAudits = async (req, res) => {
   try {
-    const employee = await prisma.employee.findUnique({ where: { id: req.user.id }});
-    const audits = await prisma.audit.findMany({
-      where: { departmentId: employee.departmentId }
-    });
-    res.json(audits);
+    const empRes = await db.query('SELECT "departmentId" FROM employee WHERE id = $1', [req.user.id]);
+    const { departmentId } = empRes.rows[0];
+    const { rows } = await db.query(
+      'SELECT * FROM audit WHERE "departmentId" = $1',
+      [departmentId]
+    );
+    res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 exports.createAudit = async (req, res) => {
   try {
-    const audit = await prisma.audit.create({ data: req.body });
-    res.status(201).json(audit);
+    const { title, departmentId, auditorName, date, findingsSummary, status } = req.body;
+    const { rows } = await db.query(
+      `INSERT INTO audit (title, "departmentId", "auditorName", date, "findingsSummary", status)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [title, departmentId, auditorName, date, findingsSummary || '', status || 'Scheduled']
+    );
+    res.status(201).json(rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 exports.getComplianceIssues = async (req, res) => {
   try {
-    const issues = await prisma.complianceIssue.findMany({
-      where: { ownerEmployeeId: req.user.id }
-    });
-    const enriched = issues.map(issue => ({
+    const { rows } = await db.query(
+      'SELECT * FROM complianceissue WHERE "ownerEmployeeId" = $1',
+      [req.user.id]
+    );
+    const enriched = rows.map(issue => ({
       ...issue,
       isOverdue: new Date(issue.dueDate) < new Date() && issue.status !== 'Resolved'
     }));
@@ -72,8 +87,13 @@ exports.getComplianceIssues = async (req, res) => {
 
 exports.createComplianceIssue = async (req, res) => {
   try {
-    const issue = await prisma.complianceIssue.create({ data: req.body });
-    res.status(201).json(issue);
+    const { auditId, title, severity, departmentId, ownerEmployeeId, dueDate, status, description } = req.body;
+    const { rows } = await db.query(
+      `INSERT INTO complianceissue ("auditId", title, severity, "departmentId", "ownerEmployeeId", "dueDate", status, description)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [auditId || null, title, severity, departmentId, ownerEmployeeId, dueDate, status || 'Open', description]
+    );
+    res.status(201).json(rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
@@ -81,10 +101,10 @@ exports.updateComplianceIssue = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    const issue = await prisma.complianceIssue.update({
-      where: { id: Number(id) },
-      data: { status }
-    });
-    res.json(issue);
+    const { rows } = await db.query(
+      'UPDATE complianceissue SET status = $1 WHERE id = $2 RETURNING *',
+      [status, Number(id)]
+    );
+    res.json(rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
