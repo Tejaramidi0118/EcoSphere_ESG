@@ -8,6 +8,7 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
+import Reports from "./pages/Reports";
 import Activities from "./pages/social/Activities";
 import ActivityDetail from "./pages/social/ActivityDetail";
 import Participation from "./pages/social/Participation";
@@ -27,16 +28,6 @@ const PlaceholderPage = ({ title }) => (
     <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 12 }}>{title}</h1>
     <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
       This page is currently being built by Developer B. Please check back at the next integration merge.
-    </p>
-  </div>
-);
-
-// Placeholder for Reports (Developer A)
-const ReportsPlaceholder = () => (
-  <div style={{ padding: 32 }}>
-    <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 12 }}>ESG reports</h1>
-    <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-      Reports interface configuration is coming in the next frontend phase.
     </p>
   </div>
 );
@@ -89,7 +80,7 @@ export default function App() {
                     <Route path="/profile" element={<Profile />} />
 
                     {/* Reports */}
-                    <Route path="/reports" element={<ReportsPlaceholder />} />
+                    <Route path="/reports" element={<Reports />} />
 
                     {/* Social (Dev B Placeholders) */}
                     <Route path="/social/activities" element={<Activities />} />

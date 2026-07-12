@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import ScoreCard from "../components/ScoreCard";
 import { getDashboardSummary } from "../api/dashboard";
 import { useNavigate } from "react-router-dom";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -127,98 +128,119 @@ export default function Dashboard() {
         </div>
 
         {/* Layout details */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           
-          {/* Department Rankings Accordion */}
-          <div style={{
-            background: "var(--surface)", border: "1px solid var(--border)",
-            borderRadius: "var(--radius-lg)", padding: 28, boxShadow: "var(--shadow)"
-          }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 18, fontFamily: "'Plus Jakarta Sans', sans-serif", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span>Department performance</span>
-              <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500 }}>Weighted Total</span>
-            </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {data.department_ranking?.map((d, index) => {
-                const isExpanded = expandedDeptId === d.departmentId;
-                return (
-                  <div key={d.departmentId} style={{
-                    background: "var(--bg)", borderRadius: "var(--radius-sm)",
-                    border: "1px solid var(--border)", padding: "12px 14px"
-                  }}>
-                    {/* Header Row */}
-                    <div 
-                      onClick={() => setExpandedDeptId(isExpanded ? null : d.departmentId)}
-                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <span style={{
-                          width: 24, height: 24, borderRadius: "50%", background: index === 0 ? "var(--forest-tint)" : "var(--surface-sunken)",
-                          color: index === 0 ? "var(--forest-light)" : "var(--text-secondary)", fontSize: 12, fontWeight: 700,
-                          display: "flex", alignItems: "center", justifyContent: "center"
-                        }}>
-                          {index + 1}
-                        </span>
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>{d.departmentName || `Department ${d.departmentId}`}</span>
-                        <span style={{ fontSize: 10, color: "var(--text-muted)", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }}>▶</span>
-                      </div>
-                      <span style={{
-                        fontWeight: 700, fontSize: 14, color: d.totalScore >= 50 ? "var(--forest-light)" : "var(--text-secondary)",
-                        background: "var(--surface)", padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)"
-                      }}>
-                        {d.totalScore} / 100
-                      </span>
-                    </div>
+          {/* Row 1: Charts */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            {/* Emissions Trend Chart */}
+            <div style={{
+              background: "var(--surface)", border: "1px solid var(--border)",
+              borderRadius: "var(--radius-lg)", padding: 28, boxShadow: "var(--shadow)"
+            }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                📈 Emissions Trend (12 mo)
+              </h3>
+              <div style={{ width: '100%', height: 260, display: 'flex', justifyContent: 'center' }}>
+                {data.emissions_trend?.length > 0 ? (
+                  <LineChart width={480} height={250} data={data.emissions_trend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="date" stroke="var(--text-secondary)" fontSize={11} tickFormatter={(str) => str ? new Date(str).toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) : ''} />
+                    <YAxis stroke="var(--text-secondary)" fontSize={11} />
+                    <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)' }} />
+                    <Line type="monotone" dataKey="co2" name="CO2 (kg)" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                ) : (
+                  <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No carbon data logged yet.</div>
+                )}
+              </div>
+            </div>
 
-                    {/* Expandable Employees Sub-List */}
-                    {isExpanded && (
-                      <div style={{
-                        marginTop: 12, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 8,
-                        borderLeft: "2px solid var(--forest-light)", paddingBottom: 4
-                      }}>
-                        {d.employees?.length === 0 ? (
-                          <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>No employees in this department.</span>
-                        ) : (
-                          d.employees?.map((emp) => (
-                            <div key={emp.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
-                              <span style={{ color: "var(--text-secondary)" }}>🏅 {emp.name}</span>
-                              <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>{emp.xpTotal} XP</span>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+            {/* Department ESG Ranking Chart */}
+            <div style={{
+              background: "var(--surface)", border: "1px solid var(--border)",
+              borderRadius: "var(--radius-lg)", padding: 28, boxShadow: "var(--shadow)"
+            }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                📊 Department ESG Ranking
+              </h3>
+              <div style={{ width: '100%', height: 260, display: 'flex', justifyContent: 'center' }}>
+                {data.department_ranking?.length > 0 ? (
+                  <BarChart width={480} height={250} data={data.department_ranking.map(d => ({ name: d.departmentName || `Dept ${d.departmentId}`, Score: d.totalScore }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={11} />
+                    <YAxis stroke="var(--text-secondary)" fontSize={11} />
+                    <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)' }} />
+                    <Bar dataKey="Score" fill="#2563eb" radius={[6, 6, 0, 0]} barSize={35} />
+                  </BarChart>
+                ) : (
+                  <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No department scores computed yet.</div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Recent Activity */}
-          <div style={{
-            background: "var(--surface)", border: "1px solid var(--border)",
-            borderRadius: "var(--radius-lg)", padding: 28, boxShadow: "var(--shadow)"
-          }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 18, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Recent activity</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {data.recent_activity?.length === 0 && (
-                <div style={{ padding: "20px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
-                  No recent activity logs found.
-                </div>
-              )}
-              {data.recent_activity?.map((n) => (
-                <div key={n.id} style={{
-                  padding: "12px 14px", borderLeft: "3px solid var(--forest-light)",
-                  background: "var(--bg)", borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
-                  fontSize: 13.5, color: "var(--text-secondary)", lineHeight: 1.4,
-                  display: "flex", justifyContent: "space-between", gap: 10
-                }}>
-                  <span>{n.message}</span>
-                  <span style={{ fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-                    {n.createdAt?.slice(11, 16)}
-                  </span>
-                </div>
-              ))}
+          {/* Row 2: Recent Activity & Quick Actions */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            {/* Recent Activity */}
+            <div style={{
+              background: "var(--surface)", border: "1px solid var(--border)",
+              borderRadius: "var(--radius-lg)", padding: 28, boxShadow: "var(--shadow)"
+            }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 18, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Recent activity</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {data.recent_activity?.length === 0 && (
+                  <div style={{ padding: "20px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
+                    No recent activity logs found.
+                  </div>
+                )}
+                {data.recent_activity?.map((n) => (
+                  <div key={n.id} style={{
+                    padding: "12px 14px", borderLeft: "3px solid var(--forest-light)",
+                    background: "var(--bg)", borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
+                    fontSize: 13.5, color: "var(--text-secondary)", lineHeight: 1.4,
+                    display: "flex", justifyContent: "space-between", gap: 10
+                  }}>
+                    <span>{n.message}</span>
+                    <span style={{ fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+                      {n.createdAt?.slice(11, 16)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Actions Panel */}
+            <div style={{
+              background: "var(--surface)", border: "1px solid var(--border)",
+              borderRadius: "var(--radius-lg)", padding: 28, boxShadow: "var(--shadow)"
+            }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 18, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>⚡ Quick Actions</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <button
+                  onClick={() => navigate("/environmental/transactions")}
+                  style={{ background: "var(--forest-light)", color: "#fff", border: "none", borderRadius: 8, padding: "12px", cursor: "pointer", fontWeight: 700, fontSize: 14, transition: "transform 0.1s" }}
+                  onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.98)"}
+                  onMouseUp={(e) => e.currentTarget.style.transform = "none"}
+                >
+                  + Log Carbon Data
+                </button>
+                <button
+                  onClick={() => navigate("/gamification/challenges")}
+                  style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 8, padding: "12px", cursor: "pointer", fontWeight: 700, fontSize: 14, transition: "transform 0.1s" }}
+                  onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.98)"}
+                  onMouseUp={(e) => e.currentTarget.style.transform = "none"}
+                >
+                  🏆 Start Challenge
+                </button>
+                <button
+                  onClick={() => navigate("/reports")}
+                  style={{ background: "#64748b", color: "#fff", border: "none", borderRadius: 8, padding: "12px", cursor: "pointer", fontWeight: 700, fontSize: 14, transition: "transform 0.1s" }}
+                  onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.98)"}
+                  onMouseUp={(e) => e.currentTarget.style.transform = "none"}
+                >
+                  📄 View Reports
+                </button>
+              </div>
             </div>
           </div>
 
