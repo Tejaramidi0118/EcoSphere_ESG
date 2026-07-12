@@ -10,6 +10,7 @@ router.get('/challenge-participation/my', gamificationController.getMyParticipat
 router.put('/challenge-participation/:id/submit', gamificationController.submitChallengeProof);
 router.get('/challenge-participation/pending', isAdmin, gamificationController.getPendingParticipations);
 router.put('/challenge-participation/:id/approve', isAdmin, gamificationController.approveChallengeParticipation);
+router.get('/redemptions', isAdmin, gamificationController.getRedemptions);
 router.get('/badges', gamificationController.getBadges);
 router.get('/my-badges', gamificationController.getMyBadges);
 router.get('/rewards', gamificationController.getRewards);
