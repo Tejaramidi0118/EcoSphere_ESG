@@ -139,6 +139,10 @@ exports.redeemReward = async (req, res) => {
     const reward = rewardRes.rows[0];
     const employee = employeeRes.rows[0];
 
+    if (!reward || reward.organizationId !== req.user.organizationId) {
+      return res.status(403).json({ error: 'Access denied. This reward does not belong to your organization.' });
+    }
+
     if (employee.xpTotal < reward.pointsRequired) {
       return res.status(400).json({ error: 'Insufficient XP! You need to earn more points to claim this reward.' });
     }

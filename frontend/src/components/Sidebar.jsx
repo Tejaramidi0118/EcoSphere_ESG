@@ -2,44 +2,54 @@ import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import "./Sidebar.css";
 
-const NAV = [
-  { to: "/", label: "Dashboard" },
-  {
-    label: "Environmental",
-    children: [
-      { to: "/environmental/goals", label: "Goals" },
-      { to: "/environmental/transactions", label: "Carbon transactions" },
-    ],
-  },
-  {
-    label: "Social",
-    children: [
-      { to: "/social/activities", label: "CSR activities" },
-      { to: "/social/participation", label: "Participation" },
-    ],
-  },
-  {
-    label: "Governance",
-    children: [
-      { to: "/governance/policies", label: "Policies" },
-      { to: "/governance/audits", label: "Audits" },
-      { to: "/governance/compliance", label: "Compliance issues" },
-    ],
-  },
-  {
-    label: "Gamification",
-    children: [
-      { to: "/gamification/challenges", label: "Challenges" },
-      { to: "/gamification/badges", label: "Badges" },
-      { to: "/gamification/leaderboard", label: "Leaderboard" },
-    ],
-  },
-  { to: "/reports", label: "Reports" },
-];
-
 export default function Sidebar() {
   const navigate = useNavigate();
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+
+  const userStr = localStorage.getItem("user");
+  const user = userStr ? JSON.parse(userStr) : null;
+  const isAdmin = user?.role === "admin";
+
+  const navItems = [
+    { to: "/", label: "Dashboard" },
+    {
+      label: "Environmental",
+      children: [
+        { to: "/environmental/goals", label: "Goals" },
+        { to: "/environmental/transactions", label: "Carbon transactions" },
+      ],
+    },
+    {
+      label: "Social",
+      children: isAdmin ? [
+        { to: "/social/activities", label: "CSR activities" },
+        { to: "/social/participation", label: "Participation queue" },
+      ] : [
+        { to: "/social/activities", label: "CSR activities" },
+      ],
+    },
+    {
+      label: "Governance",
+      children: [
+        { to: "/governance/policies", label: "Policies" },
+        { to: "/governance/audits", label: "Audits" },
+        { to: "/governance/compliance", label: "Compliance issues" },
+      ],
+    },
+    {
+      label: "Gamification",
+      children: isAdmin ? [
+        { to: "/gamification/challenges", label: "Challenges" },
+        { to: "/gamification/approvals", label: "Queue approvals" },
+        { to: "/gamification/leaderboard", label: "Leaderboard" },
+      ] : [
+        { to: "/gamification/challenges", label: "Challenges" },
+        { to: "/gamification/badges", label: "Badges" },
+        { to: "/gamification/leaderboard", label: "Leaderboard" },
+      ],
+    },
+    { to: "/reports", label: "Reports" },
+  ];
 
   const toggleTheme = () => {
     const nextTheme = theme === "light" ? "dark" : "light";
@@ -52,7 +62,7 @@ export default function Sidebar() {
     <nav className="sidebar">
       <div className="sidebar-brand">EcoSphere</div>
       <div className="sidebar-content">
-        {NAV.map((item) =>
+        {navItems.map((item) =>
           item.children ? (
             <div className="sidebar-group" key={item.label}>
               <div className="sidebar-group-label">{item.label}</div>
