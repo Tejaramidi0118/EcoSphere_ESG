@@ -24,9 +24,12 @@ async function computeSocialScore(departmentId) {
 }
 
 // Governance score: % policies acknowledged minus penalty per open compliance issue
-async function computeGovScore(departmentId) {
+async function computeGovScore(departmentId, organizationId) {
   const policies = await db.eSGPolicy.findMany({
-    where: { OR: [{ departmentId }, { departmentId: null }] },
+    where: {
+      organizationId,
+      OR: [{ departmentId }, { departmentId: null }],
+    },
   });
   const employees = await db.employee.findMany({ where: { departmentId } });
   let ackRate = 100;
@@ -45,11 +48,11 @@ async function computeGovScore(departmentId) {
 // Weights — configurable later via Settings, hardcoded default for now
 const WEIGHTS = { env: 0.4, social: 0.3, gov: 0.3 };
 
-async function computeDepartmentScore(departmentId) {
+async function computeDepartmentScore(departmentId, organizationId) {
   const [envScore, socialScore, govScore] = await Promise.all([
     computeEnvScore(departmentId),
     computeSocialScore(departmentId),
-    computeGovScore(departmentId),
+    computeGovScore(departmentId, organizationId),
   ]);
   const totalScore = Math.round(
     envScore * WEIGHTS.env + socialScore * WEIGHTS.social + govScore * WEIGHTS.gov
@@ -57,9 +60,13 @@ async function computeDepartmentScore(departmentId) {
   return { departmentId, envScore, socialScore, govScore, totalScore };
 }
 
-async function computeOverallScore() {
-  const departments = await db.department.findMany({ where: { status: 'Active' } });
-  const scores = await Promise.all(departments.map(d => computeDepartmentScore(d.id)));
+async function computeOverallScore(organizationId) {
+  if (!organizationId) {
+    throw new Error('organizationId is required to compute ESG scores.');
+  }
+
+  const departments = await db.department.findMany({ where: { organizationId, status: 'Active' } });
+  const scores = await Promise.all(departments.map(d => computeDepartmentScore(d.id, organizationId)));
   const avg = (key) => Math.round(scores.reduce((sum, d) => sum + d[key], 0) / (scores.length || 1));
   return {
     environmental: avg('envScore'),

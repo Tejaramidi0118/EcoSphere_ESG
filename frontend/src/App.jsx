@@ -1,8 +1,12 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Goals from "./pages/environmental/Goals";
 import Transactions from "./pages/environmental/Transactions";
+import Landing from "./pages/Landing";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Profile from "./pages/Profile";
 import "./styles/theme.css";
 
 // Simple fallback view for routes owned by Developer B (Social/Governance/Gamification)
@@ -25,42 +29,74 @@ const ReportsPlaceholder = () => (
   </div>
 );
 
+// Router guards to separate guest / authenticated views
+const PrivateRoute = ({ children }) => {
+  const token = localStorage.getItem("token");
+  return token ? children : <Navigate to="/landing" replace />;
+};
+
+const PublicRoute = ({ children }) => {
+  const token = localStorage.getItem("token");
+  return !token ? children : <Navigate to="/" replace />;
+};
+
 export default function App() {
   return (
     <Router>
-      <div style={{ display: "flex", minHeight: "100vh" }}>
-        {/* Navigation Sidebar */}
-        <Sidebar />
-        
-        {/* Main Work Area */}
-        <main style={{ flex: 1, background: "var(--bg)", minHeight: "100vh" }}>
-          <Routes>
-            {/* Dashboard (Dev A) */}
-            <Route path="/" element={<Dashboard />} />
+      <Routes>
+        {/* Public Guest Pages (No Sidebar) */}
+        <Route path="/landing" element={<PublicRoute><Landing /></PublicRoute>} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
 
-            {/* Environmental (Dev A) */}
-            <Route path="/environmental/goals" element={<Goals />} />
-            <Route path="/environmental/transactions" element={<Transactions />} />
+        {/* Private Workspace Pages (With Sidebar Layout) */}
+        <Route
+          path="/*"
+          element={
+            <PrivateRoute>
+              <div style={{ display: "flex", minHeight: "100vh" }}>
+                {/* Navigation Sidebar */}
+                <Sidebar />
+                
+                {/* Main Work Area */}
+                <main style={{ flex: 1, background: "var(--bg)", minHeight: "100vh" }}>
+                  <Routes>
+                    {/* Dashboard */}
+                    <Route path="/" element={<Dashboard />} />
 
-            {/* Reports (Dev A) */}
-            <Route path="/reports" element={<ReportsPlaceholder />} />
+                    {/* Environmental */}
+                    <Route path="/environmental/goals" element={<Goals />} />
+                    <Route path="/environmental/transactions" element={<Transactions />} />
 
-            {/* Social (Dev B Placeholders) */}
-            <Route path="/social/activities" element={<PlaceholderPage title="CSR activities" />} />
-            <Route path="/social/participation" element={<PlaceholderPage title="Employee participation" />} />
+                    {/* Profile details */}
+                    <Route path="/profile" element={<Profile />} />
 
-            {/* Governance (Dev B Placeholders) */}
-            <Route path="/governance/policies" element={<PlaceholderPage title="ESG policies" />} />
-            <Route path="/governance/audits" element={<PlaceholderPage title="ESG audits" />} />
-            <Route path="/governance/compliance" element={<PlaceholderPage title="Compliance issues" />} />
+                    {/* Reports */}
+                    <Route path="/reports" element={<ReportsPlaceholder />} />
 
-            {/* Gamification (Dev B Placeholders) */}
-            <Route path="/gamification/challenges" element={<PlaceholderPage title="Gamified challenges" />} />
-            <Route path="/gamification/badges" element={<PlaceholderPage title="Unlocked badges" />} />
-            <Route path="/gamification/leaderboard" element={<PlaceholderPage title="Sustainability leaderboard" />} />
-          </Routes>
-        </main>
-      </div>
+                    {/* Social (Dev B Placeholders) */}
+                    <Route path="/social/activities" element={<PlaceholderPage title="CSR activities" />} />
+                    <Route path="/social/participation" element={<PlaceholderPage title="Employee participation" />} />
+
+                    {/* Governance (Dev B Placeholders) */}
+                    <Route path="/governance/policies" element={<PlaceholderPage title="ESG policies" />} />
+                    <Route path="/governance/audits" element={<PlaceholderPage title="ESG audits" />} />
+                    <Route path="/governance/compliance" element={<PlaceholderPage title="Compliance issues" />} />
+
+                    {/* Gamification (Dev B Placeholders) */}
+                    <Route path="/gamification/challenges" element={<PlaceholderPage title="Gamified challenges" />} />
+                    <Route path="/gamification/badges" element={<PlaceholderPage title="Unlocked badges" />} />
+                    <Route path="/gamification/leaderboard" element={<PlaceholderPage title="Sustainability leaderboard" />} />
+
+                    {/* Catch-all fallback */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </main>
+              </div>
+            </PrivateRoute>
+          }
+        />
+      </Routes>
     </Router>
   );
 }

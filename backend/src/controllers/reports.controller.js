@@ -3,9 +3,20 @@ const { computeOverallScore } = require('../services/scoring.service');
 
 async function getEnvironmentalReport(req, res) {
   try {
+    const orgId = req.user.organizationId;
+    if (!orgId) {
+      return res.status(400).json({ error: 'Organization ID is missing from user session.' });
+    }
+
     const { department_id, from, to } = req.query;
-    const where = {};
-    if (department_id) where.departmentId = Number(department_id);
+    const where = {
+      department: { organizationId: orgId }
+    };
+
+    if (department_id) {
+      where.departmentId = Number(department_id);
+    }
+
     if (from || to) {
       where.date = {
         ...(from && { gte: new Date(from) }),
@@ -18,8 +29,15 @@ async function getEnvironmentalReport(req, res) {
       include: { emissionFactor: true, department: true },
     });
 
+    const goalsWhere = {
+      department: { organizationId: orgId }
+    };
+    if (department_id) {
+      goalsWhere.departmentId = Number(department_id);
+    }
+
     const goals = await db.environmentalGoal.findMany({
-      where: department_id ? { departmentId: Number(department_id) } : {},
+      where: goalsWhere,
       include: { department: true },
     });
 
@@ -39,7 +57,12 @@ async function getEnvironmentalReport(req, res) {
 
 async function getEsgSummary(req, res) {
   try {
-    const scores = await computeOverallScore();
+    const orgId = req.user.organizationId;
+    if (!orgId) {
+      return res.status(400).json({ error: 'Organization ID is missing from user session.' });
+    }
+
+    const scores = await computeOverallScore(orgId);
     return res.json(scores);
   } catch (error) {
     console.error('Failed to generate ESG summary:', error);

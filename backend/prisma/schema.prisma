@@ -7,16 +7,38 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Organization {
+  id          Int          @id @default(autoincrement())
+  name        String
+  industry    String
+  size        String
+  country     String
+  createdAt   DateTime     @default(now())
+  
+  // Relations
+  departments Department[]
+  employees   Employee[]
+  policies    ESGPolicy[]
+  challenges  Challenge[]
+  rewards     Reward[]
+  activities  CSRActivity[]
+}
+
 model Department {
   id                 Int                 @id @default(autoincrement())
   name               String
-  code               String              @unique
+  code               String
   head               String
   parentDepartmentId Int?
   parentDepartment   Department?         @relation("DepartmentToDepartment", fields: [parentDepartmentId], references: [id])
   subDepartments     Department[]        @relation("DepartmentToDepartment")
   employeeCount      Int
   status             String              @default("Active") // Active/Inactive
+  
+  // Scoped to Organization
+  organizationId     Int
+  organization       Organization        @relation(fields: [organizationId], references: [id])
+  
   employees          Employee[]
   carbonTransactions CarbonTransaction[]
   environmentalGoals EnvironmentalGoal[]
@@ -25,7 +47,9 @@ model Department {
   complianceIssues   ComplianceIssue[]
   scores             DepartmentScore[]
 
+  @@unique([organizationId, code])
   @@index([status])
+  @@index([organizationId])
 }
 
 model Employee {
@@ -33,11 +57,16 @@ model Employee {
   name                    String
   email                   String                   @unique
   passwordHash            String
-  role                    String                   @default("employee") // admin / employee
+  role                    String                   @default("employee") // admin / manager / employee / auditor
   departmentId            Int
   department              Department               @relation(fields: [departmentId], references: [id])
   xpTotal                 Int                      @default(0)
   createdAt               DateTime                 @default(now())
+  
+  // Scoped to Organization
+  organizationId          Int
+  organization            Organization             @relation(fields: [organizationId], references: [id])
+  
   policyAcknowledgements  PolicyAcknowledgement[]
   complianceIssuesOwned   ComplianceIssue[]        @relation("EmployeeComplianceIssues")
   participations          EmployeeParticipation[]
@@ -45,6 +74,8 @@ model Employee {
   badges                  EmployeeBadge[]
   redemptions             RewardRedemption[]
   notifications           Notification[]
+
+  @@index([organizationId])
 }
 
 model Category {
@@ -73,8 +104,8 @@ model CarbonTransaction {
   emissionFactor   EmissionFactor @relation(fields: [emissionFactorId], references: [id])
   quantity         Float
   co2Calculated    Float // quantity * co2PerUnit
-  sourceType       String // Purchase/Manufacturing/Expense/Fleet/Manual
-  date             DateTime
+  sourceType       String // Fleet / Manufacturing / Purchase / Expense / Manual
+  date             DateTime       @default(now())
 
   @@index([departmentId])
   @@index([date])
@@ -102,7 +133,14 @@ model ESGPolicy {
   department       Department?             @relation(fields: [departmentId], references: [id])
   version          String                  @default("1.0")
   status           String                  @default("Active")
+  
+  // Scoped to Organization
+  organizationId   Int
+  organization     Organization            @relation(fields: [organizationId], references: [id])
+  
   acknowledgements PolicyAcknowledgement[]
+
+  @@index([organizationId])
 }
 
 model PolicyAcknowledgement {
@@ -153,7 +191,14 @@ model CSRActivity {
   description      String
   evidenceRequired Boolean                 @default(true)
   status           String                  @default("Open") // Open/Closed
+  
+  // Scoped to Organization
+  organizationId   Int
+  organization     Organization            @relation(fields: [organizationId], references: [id])
+  
   participations   EmployeeParticipation[]
+
+  @@index([organizationId])
 }
 
 model EmployeeParticipation {
@@ -181,9 +226,15 @@ model Challenge {
   evidenceRequired Boolean                  @default(true)
   deadline         DateTime
   status           String                   @default("Draft") // Draft/Active/Under Review/Completed/Archived
+  
+  // Scoped to Organization
+  organizationId   Int
+  organization     Organization             @relation(fields: [organizationId], references: [id])
+  
   participations   ChallengeParticipation[]
 
   @@index([status])
+  @@index([organizationId])
 }
 
 model ChallengeParticipation {
@@ -225,7 +276,14 @@ model Reward {
   pointsRequired Int
   stock          Int
   status         String             @default("Active")
+  
+  // Scoped to Organization
+  organizationId Int
+  organization   Organization       @relation(fields: [organizationId], references: [id])
+  
   redemptions    RewardRedemption[]
+
+  @@index([organizationId])
 }
 
 model RewardRedemption {

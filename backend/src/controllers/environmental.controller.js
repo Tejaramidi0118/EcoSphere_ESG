@@ -36,8 +36,17 @@ const createEmissionFactor = async (req, res) => {
 };
 
 const getCarbonTransactions = async (req, res) => {
+  const orgId = req.user.organizationId;
+  if (!orgId) {
+    return res.status(400).json({ error: 'Organization ID is missing from user session.' });
+  }
+
   const { departmentId, from, to } = req.query;
-  const where = {};
+  
+  // Scope by organizationId transitively through department
+  const where = {
+    department: { organizationId: orgId }
+  };
 
   if (departmentId) {
     where.departmentId = parseInt(departmentId, 10);
@@ -74,6 +83,11 @@ const getCarbonTransactions = async (req, res) => {
 };
 
 const createCarbonTransaction = async (req, res) => {
+  const orgId = req.user.organizationId;
+  if (!orgId) {
+    return res.status(400).json({ error: 'Organization ID is missing from user session.' });
+  }
+
   const { departmentId, emissionFactorId, quantity, sourceType, date } = req.body;
 
   if (!departmentId || !emissionFactorId || quantity === undefined || !sourceType) {
@@ -81,6 +95,15 @@ const createCarbonTransaction = async (req, res) => {
   }
 
   try {
+    // Verify target department belongs to the user's organization
+    const dept = await prisma.department.findUnique({
+      where: { id: parseInt(departmentId, 10) }
+    });
+
+    if (!dept || dept.organizationId !== orgId) {
+      return res.status(400).json({ error: 'Invalid department for this organization.' });
+    }
+
     // Look up emission factor to get co2PerUnit
     const factor = await prisma.emissionFactor.findUnique({
       where: { id: parseInt(emissionFactorId, 10) },
@@ -128,8 +151,17 @@ const createCarbonTransaction = async (req, res) => {
 };
 
 const getGoals = async (req, res) => {
+  const orgId = req.user.organizationId;
+  if (!orgId) {
+    return res.status(400).json({ error: 'Organization ID is missing from user session.' });
+  }
+
   const { departmentId, status } = req.query;
-  const where = {};
+  
+  // Scope by organizationId transitively through department
+  const where = {
+    department: { organizationId: orgId }
+  };
 
   if (departmentId) {
     where.departmentId = parseInt(departmentId, 10);
@@ -157,6 +189,11 @@ const getGoals = async (req, res) => {
 };
 
 const createGoal = async (req, res) => {
+  const orgId = req.user.organizationId;
+  if (!orgId) {
+    return res.status(400).json({ error: 'Organization ID is missing from user session.' });
+  }
+
   const { name, departmentId, targetCo2, deadline } = req.body;
 
   if (!name || !departmentId || targetCo2 === undefined || !deadline) {
@@ -164,6 +201,15 @@ const createGoal = async (req, res) => {
   }
 
   try {
+    // Verify target department belongs to the user's organization
+    const dept = await prisma.department.findUnique({
+      where: { id: parseInt(departmentId, 10) }
+    });
+
+    if (!dept || dept.organizationId !== orgId) {
+      return res.status(400).json({ error: 'Invalid department for this organization.' });
+    }
+
     const goal = await prisma.environmentalGoal.create({
       data: {
         name,
@@ -185,10 +231,25 @@ const createGoal = async (req, res) => {
 };
 
 const updateGoal = async (req, res) => {
+  const orgId = req.user.organizationId;
+  if (!orgId) {
+    return res.status(400).json({ error: 'Organization ID is missing from user session.' });
+  }
+
   const { id } = req.params;
   const { name, targetCo2, currentCo2, deadline, status } = req.body;
 
   try {
+    // Verify goal belongs to user's organization
+    const goalCheck = await prisma.environmentalGoal.findUnique({
+      where: { id: parseInt(id, 10) },
+      include: { department: true }
+    });
+
+    if (!goalCheck || goalCheck.department.organizationId !== orgId) {
+      return res.status(403).json({ error: 'Forbidden. You do not own this goal.' });
+    }
+
     const data = {};
     if (name !== undefined) data.name = name;
     if (targetCo2 !== undefined) data.targetCo2 = parseFloat(targetCo2);
@@ -212,9 +273,24 @@ const updateGoal = async (req, res) => {
 };
 
 const deleteGoal = async (req, res) => {
+  const orgId = req.user.organizationId;
+  if (!orgId) {
+    return res.status(400).json({ error: 'Organization ID is missing from user session.' });
+  }
+
   const { id } = req.params;
 
   try {
+    // Verify goal belongs to user's organization
+    const goalCheck = await prisma.environmentalGoal.findUnique({
+      where: { id: parseInt(id, 10) },
+      include: { department: true }
+    });
+
+    if (!goalCheck || goalCheck.department.organizationId !== orgId) {
+      return res.status(403).json({ error: 'Forbidden. You do not own this goal.' });
+    }
+
     await prisma.environmentalGoal.delete({
       where: { id: parseInt(id, 10) },
     });

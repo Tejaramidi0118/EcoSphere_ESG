@@ -20,9 +20,12 @@ app.use('/api/environmental', environmentalRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportsRoutes);
 
-app.get('/api/departments', async (req, res) => {
+const { verifyToken } = require('./middleware/auth');
+
+app.get('/api/departments', verifyToken, async (req, res) => {
   try {
     const depts = await prisma.department.findMany({
+      where: { organizationId: req.user.organizationId },
       orderBy: { name: 'asc' },
     });
     return res.json(depts);

@@ -26,10 +26,21 @@ async function main() {
   await prisma.emissionFactor.deleteMany({});
   await prisma.employee.deleteMany({});
   await prisma.department.deleteMany({});
+  await prisma.organization.deleteMany({});
+
+  console.log('Seeding default organization...');
+  const org = await prisma.organization.create({
+    data: {
+      name: 'EcoSphere Corp',
+      industry: 'Technology',
+      size: '100-500',
+      country: 'United Kingdom',
+    },
+  });
 
   console.log('Seeding departments...');
   const mfg = await prisma.department.create({
-    data: { name: 'Manufacturing', code: 'MFG', head: 'S. Nair', employeeCount: 134 },
+    data: { name: 'Manufacturing', code: 'MFG', head: 'S. Nair', employeeCount: 134, organizationId: org.id },
   });
 
   const log = await prisma.department.create({
@@ -39,19 +50,20 @@ async function main() {
       head: 'R. Iyer',
       employeeCount: 58,
       parentDepartmentId: mfg.id,
+      organizationId: org.id,
     },
   });
 
   const cor = await prisma.department.create({
-    data: { name: 'Corporate', code: 'COR', head: 'A. Mehta', employeeCount: 41 },
+    data: { name: 'Corporate', code: 'COR', head: 'A. Mehta', employeeCount: 41, organizationId: org.id },
   });
 
   const rnd = await prisma.department.create({
-    data: { name: 'R&D', code: 'RND', head: 'P. Singh', employeeCount: 22 },
+    data: { name: 'R&D', code: 'RND', head: 'P. Singh', employeeCount: 22, organizationId: org.id },
   });
 
   const sls = await prisma.department.create({
-    data: { name: 'Sales', code: 'SLS', head: 'D. Kapoor', employeeCount: 30 },
+    data: { name: 'Sales', code: 'SLS', head: 'D. Kapoor', employeeCount: 30, organizationId: org.id },
   });
 
   console.log('Seeding employees...');
@@ -65,6 +77,7 @@ async function main() {
       passwordHash,
       role: 'admin',
       departmentId: cor.id,
+      organizationId: org.id,
     },
   });
 
@@ -76,6 +89,7 @@ async function main() {
       role: 'employee',
       departmentId: mfg.id,
       xpTotal: 80,
+      organizationId: org.id,
     },
   });
 
@@ -87,6 +101,7 @@ async function main() {
       role: 'employee',
       departmentId: mfg.id,
       xpTotal: 3910,
+      organizationId: org.id,
     },
   });
 
@@ -98,6 +113,7 @@ async function main() {
       role: 'employee',
       departmentId: rnd.id,
       xpTotal: 250,
+      organizationId: org.id,
     },
   });
 
@@ -109,6 +125,7 @@ async function main() {
       role: 'employee',
       departmentId: log.id,
       xpTotal: 450,
+      organizationId: org.id,
     },
   });
 
@@ -120,6 +137,7 @@ async function main() {
       role: 'employee',
       departmentId: mfg.id,
       xpTotal: 510,
+      organizationId: org.id,
     },
   });
 
@@ -131,6 +149,7 @@ async function main() {
       role: 'employee',
       departmentId: sls.id,
       xpTotal: 30,
+      organizationId: org.id,
     },
   });
 
@@ -142,6 +161,7 @@ async function main() {
       role: 'employee',
       departmentId: cor.id,
       xpTotal: 120,
+      organizationId: org.id,
     },
   });
 
@@ -261,6 +281,7 @@ async function main() {
       description: 'Planting trees around local industrial parks to reduce carbon footprint. Evidence of planting a sapling is required.',
       evidenceRequired: true,
       status: 'Open',
+      organizationId: org.id,
     },
   });
 
@@ -271,6 +292,7 @@ async function main() {
       description: 'Donate blood at the corporate healthcare camp. Certified receipt/slip required.',
       evidenceRequired: true,
       status: 'Open',
+      organizationId: org.id,
     },
   });
 
@@ -281,6 +303,7 @@ async function main() {
       description: 'Cleaning plastic waste from the public beach. No specific evidence required, just check in.',
       evidenceRequired: false,
       status: 'Open',
+      organizationId: org.id,
     },
   });
 
@@ -291,6 +314,7 @@ async function main() {
       description: 'Understand regulatory ESG compliance requirements. Attendance checklist based.',
       evidenceRequired: false,
       status: 'Open',
+      organizationId: org.id,
     },
   });
 
@@ -324,6 +348,7 @@ async function main() {
       description: 'Rules and guidelines on avoiding bribery, corruption, and conflict of interest.',
       version: '1.0',
       status: 'Active',
+      organizationId: org.id,
     },
   });
 
@@ -333,6 +358,7 @@ async function main() {
       description: 'Org-wide standards on user and client data collection, storage, and privacy.',
       version: '1.0',
       status: 'Active',
+      organizationId: org.id,
     },
   });
 
@@ -343,6 +369,7 @@ async function main() {
       version: '1.1',
       status: 'Active',
       departmentId: mfg.id,
+      organizationId: org.id,
     },
   });
 
@@ -420,6 +447,7 @@ async function main() {
       difficulty: 'Hard',
       deadline: new Date('2026-07-20'),
       status: 'Active',
+      organizationId: org.id,
     },
   });
 
@@ -432,6 +460,7 @@ async function main() {
       difficulty: 'Easy',
       deadline: new Date('2026-07-15'),
       status: 'Active',
+      organizationId: org.id,
     },
   });
 
@@ -444,6 +473,7 @@ async function main() {
       difficulty: 'Medium',
       deadline: new Date('2026-07-25'),
       status: 'Draft',
+      organizationId: org.id,
     },
   });
 
@@ -523,13 +553,13 @@ async function main() {
 
   console.log('Seeding rewards...');
   await prisma.reward.create({
-    data: { name: 'Eco Tote Bag', description: 'Reusable organic cotton shopping bag.', pointsRequired: 100, stock: 50 },
+    data: { name: 'Eco Tote Bag', description: 'Reusable organic cotton shopping bag.', pointsRequired: 100, stock: 50, organizationId: org.id },
   });
   await prisma.reward.create({
-    data: { name: 'Extra Day Off', description: 'One paid leave coupon (subject to manager approval).', pointsRequired: 1000, stock: 5 },
+    data: { name: 'Extra Day Off', description: 'One paid leave coupon (subject to manager approval).', pointsRequired: 1000, stock: 5, organizationId: org.id },
   });
   await prisma.reward.create({
-    data: { name: 'Company Swag Pack', description: 'Recycled steel bottle, pen, and notebook.', pointsRequired: 300, stock: 20 },
+    data: { name: 'Company Swag Pack', description: 'Recycled steel bottle, pen, and notebook.', pointsRequired: 300, stock: 20, organizationId: org.id },
   });
 
   console.log('Seeding department scores...');

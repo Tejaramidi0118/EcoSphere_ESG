@@ -30,6 +30,7 @@ const login = async (req, res) => {
         id: employee.id,
         role: employee.role,
         departmentId: employee.departmentId,
+        organizationId: employee.organizationId,
       },
       secret,
       { expiresIn: '24h' }
@@ -44,6 +45,7 @@ const login = async (req, res) => {
         role: employee.role,
         departmentId: employee.departmentId,
         departmentName: employee.department?.name,
+        organizationId: employee.organizationId,
         xpTotal: employee.xpTotal,
       },
     });
@@ -63,6 +65,7 @@ const me = async (req, res) => {
         email: true,
         role: true,
         departmentId: true,
+        organizationId: true,
         xpTotal: true,
         department: {
           select: {
@@ -84,7 +87,176 @@ const me = async (req, res) => {
   }
 };
 
+const registerOrganization = async (req, res) => {
+  const { orgName, industry, size, country, adminName, email, password } = req.body;
+
+  if (!orgName || !industry || !size || !country || !adminName || !email || !password) {
+    return res.status(400).json({ error: 'All fields are required to register an organization.' });
+  }
+
+  try {
+    // Check if email already exists
+    const existingUser = await prisma.employee.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email is already registered.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create organization, departments, and admin employee in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create Organization
+      const org = await tx.organization.create({
+        data: {
+          name: orgName,
+          industry,
+          size,
+          country,
+        },
+      });
+
+      // 2. Create default Corporate department for the admin user
+      const corDept = await tx.department.create({
+        data: {
+          name: 'Corporate',
+          code: 'COR',
+          head: adminName,
+          employeeCount: 1,
+          organizationId: org.id,
+        },
+      });
+
+      // 3. Create Admin Employee
+      const adminUser = await tx.employee.create({
+        data: {
+          name: adminName,
+          email,
+          passwordHash,
+          role: 'admin',
+          departmentId: corDept.id,
+          organizationId: org.id,
+        },
+      });
+
+      // 4. Create other default departments (optional convenience)
+      await tx.department.createMany({
+        data: [
+          { name: 'Engineering', code: 'ENG', head: 'TBD', employeeCount: 0, organizationId: org.id },
+          { name: 'Human Resources', code: 'HR', head: 'TBD', employeeCount: 0, organizationId: org.id },
+          { name: 'Sales', code: 'SLS', head: 'TBD', employeeCount: 0, organizationId: org.id },
+        ],
+      });
+
+      return { org, adminUser };
+    });
+
+    return res.status(201).json({
+      message: 'Organization registered successfully.',
+      organization: result.org,
+      admin: {
+        id: result.adminUser.id,
+        name: result.adminUser.name,
+        email: result.adminUser.email,
+        role: result.adminUser.role,
+      },
+    });
+  } catch (error) {
+    console.error('Register organization error:', error);
+    return res.status(500).json({ error: 'An error occurred during organization registration.' });
+  }
+};
+
+const registerEmployee = async (req, res) => {
+  const { name, email, password, organizationId, departmentId } = req.body;
+
+  if (!name || !email || !password || !organizationId || !departmentId) {
+    return res.status(400).json({ error: 'Name, email, password, organization, and department are required.' });
+  }
+
+  try {
+    // Check if email already exists
+    const existingUser = await prisma.employee.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email is already registered.' });
+    }
+
+    // Verify department belongs to the organization
+    const dept = await prisma.department.findUnique({
+      where: { id: parseInt(departmentId, 10) }
+    });
+
+    if (!dept || dept.organizationId !== parseInt(organizationId, 10)) {
+      return res.status(400).json({ error: 'Selected department does not belong to the selected organization.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Create employee account
+      const employee = await tx.employee.create({
+        data: {
+          name,
+          email,
+          passwordHash,
+          role: 'employee',
+          departmentId: parseInt(departmentId, 10),
+          organizationId: parseInt(organizationId, 10),
+        }
+      });
+
+      // Increment employee count for the department
+      await tx.department.update({
+        where: { id: parseInt(departmentId, 10) },
+        data: {
+          employeeCount: { increment: 1 }
+        }
+      });
+
+      return employee;
+    });
+
+    return res.status(201).json({
+      message: 'Employee registered successfully.',
+      employee: {
+        id: result.id,
+        name: result.name,
+        email: result.email,
+        role: result.role,
+      }
+    });
+  } catch (error) {
+    console.error('Register employee error:', error);
+    return res.status(500).json({ error: 'An error occurred during employee registration.' });
+  }
+};
+
+const getPublicOrganizations = async (req, res) => {
+  try {
+    const orgs = await prisma.organization.findMany({
+      select: {
+        id: true,
+        name: true,
+        departments: {
+          select: {
+            id: true,
+            name: true,
+            code: true
+          }
+        }
+      },
+      orderBy: { name: 'asc' }
+    });
+    return res.json(orgs);
+  } catch (error) {
+    console.error('Fetch public organizations error:', error);
+    return res.status(500).json({ error: 'Failed to fetch organizations list.' });
+  }
+};
+
 module.exports = {
   login,
   me,
+  registerOrganization,
+  registerEmployee,
+  getPublicOrganizations,
 };
