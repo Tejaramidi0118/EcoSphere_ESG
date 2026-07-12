@@ -3,6 +3,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const prisma = require('./db');
 const authRoutes = require('./routes/auth.routes');
+const environmentalRoutes = require('./routes/environmental.routes');
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/environmental', environmentalRoutes);
 
 app.get('/api/health', async (req, res) => {
   try {
