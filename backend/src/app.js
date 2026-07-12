@@ -6,6 +6,10 @@ const authRoutes = require('./routes/auth.routes');
 const environmentalRoutes = require('./routes/environmental.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const reportsRoutes = require('./routes/reports.routes');
+const socialRoutes = require('./routes/social.routes');
+const gamificationRoutes = require('./routes/gamification.routes');
+const governanceRoutes = require('./routes/governance.routes');
+const settingsRoutes = require('./routes/settings.routes');
 
 dotenv.config();
 
@@ -19,6 +23,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/environmental', environmentalRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/social', socialRoutes);
+app.use('/api/gamification', gamificationRoutes);
+app.use('/api/governance', governanceRoutes);
+app.use('/api/settings', settingsRoutes);
 
 const { verifyToken } = require('./middleware/auth');
 
