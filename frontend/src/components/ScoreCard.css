@@ -1,0 +1,91 @@
+.score-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  flex: 1;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.score-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--forest-light);
+}
+
+.score-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Card custom status top color indicators */
+.score-social::after {
+  background: var(--amber-light);
+}
+
+.score-gov::after {
+  background: var(--coral-light);
+}
+
+.score-overall::after {
+  background: linear-gradient(90deg, var(--forest-light), var(--blue-light));
+}
+
+.score-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.score-value {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.score-max {
+  font-size: 16px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-left: 2px;
+}
+
+.score-track {
+  height: 8px;
+  background: var(--surface-sunken);
+  border-radius: 4px;
+  margin-top: 16px;
+  overflow: hidden;
+}
+
+.score-fill {
+  height: 100%;
+  background: var(--forest-light);
+  border-radius: 4px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.score-social .score-fill {
+  background: linear-gradient(90deg, var(--amber), var(--amber-light));
+}
+
+.score-gov .score-fill {
+  background: linear-gradient(90deg, var(--coral), var(--coral-light));
+}
+
+.score-overall .score-fill {
+  background: linear-gradient(90deg, var(--forest-light), var(--blue-light));
+}

@@ -107,6 +107,19 @@ const createCarbonTransaction = async (req, res) => {
       },
     });
 
+    // Automatically increment currentCo2 on active goals for this department
+    await prisma.environmentalGoal.updateMany({
+      where: {
+        departmentId: parseInt(departmentId, 10),
+        status: { in: ['Active', 'On Track'] },
+      },
+      data: {
+        currentCo2: {
+          increment: co2Calculated,
+        },
+      },
+    });
+
     return res.status(201).json(transaction);
   } catch (error) {
     console.error('Create carbon transaction error:', error);

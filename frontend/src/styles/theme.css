@@ -1,0 +1,80 @@
+:root {
+  /* Premium Light Design System */
+  --bg: #F4F7F6;
+  --surface: #FFFFFF;
+  --surface-hover: #FAFAF9;
+  --surface-sunken: #EBEFEF;
+  --border: #E0E7E5;
+  --border-focus: #10B981;
+  
+  --text-primary: #111B17;
+  --text-secondary: #3D4F48;
+  --text-muted: #758A81;
+
+  --forest: #0F3726;
+  --forest-light: #10B981;
+  --forest-hover: #0D9488;
+  --forest-tint: #E6F7F0;
+
+  --amber: #D97706;
+  --amber-light: #F59E0B;
+  --amber-tint: #FEF3C7;
+
+  --coral: #DC2626;
+  --coral-light: #EF4444;
+  --coral-tint: #FEE2E2;
+
+  --blue: #2563EB;
+  --blue-light: #3B82F6;
+  --blue-tint: #DBEAFE;
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02);
+  --shadow: 0 4px 20px -2px rgba(15, 55, 38, 0.05), 0 2px 8px -1px rgba(15, 55, 38, 0.02);
+  --shadow-lg: 0 20px 25px -5px rgba(15, 55, 38, 0.08), 0 10px 10px -5px rgba(15, 55, 38, 0.03);
+  
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}

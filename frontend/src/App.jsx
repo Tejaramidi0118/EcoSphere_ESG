@@ -1,122 +1,66 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Sidebar from "./components/Sidebar";
+import Dashboard from "./pages/Dashboard";
+import Goals from "./pages/environmental/Goals";
+import Transactions from "./pages/environmental/Transactions";
+import "./styles/theme.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+// Simple fallback view for routes owned by Developer B (Social/Governance/Gamification)
+const PlaceholderPage = ({ title }) => (
+  <div style={{ padding: 32 }}>
+    <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 12 }}>{title}</h1>
+    <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
+      This page is currently being built by Developer B. Please check back at the next integration merge.
+    </p>
+  </div>
+);
 
+// Placeholder for Reports (Developer A)
+const ReportsPlaceholder = () => (
+  <div style={{ padding: 32 }}>
+    <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 12 }}>ESG reports</h1>
+    <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
+      Reports interface configuration is coming in the next frontend phase.
+    </p>
+  </div>
+);
+
+export default function App() {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <Router>
+      <div style={{ display: "flex", minHeight: "100vh" }}>
+        {/* Navigation Sidebar */}
+        <Sidebar />
+        
+        {/* Main Work Area */}
+        <main style={{ flex: 1, background: "var(--bg)", minHeight: "100vh" }}>
+          <Routes>
+            {/* Dashboard (Dev A) */}
+            <Route path="/" element={<Dashboard />} />
 
-      <div className="ticks"></div>
+            {/* Environmental (Dev A) */}
+            <Route path="/environmental/goals" element={<Goals />} />
+            <Route path="/environmental/transactions" element={<Transactions />} />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+            {/* Reports (Dev A) */}
+            <Route path="/reports" element={<ReportsPlaceholder />} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+            {/* Social (Dev B Placeholders) */}
+            <Route path="/social/activities" element={<PlaceholderPage title="CSR activities" />} />
+            <Route path="/social/participation" element={<PlaceholderPage title="Employee participation" />} />
+
+            {/* Governance (Dev B Placeholders) */}
+            <Route path="/governance/policies" element={<PlaceholderPage title="ESG policies" />} />
+            <Route path="/governance/audits" element={<PlaceholderPage title="ESG audits" />} />
+            <Route path="/governance/compliance" element={<PlaceholderPage title="Compliance issues" />} />
+
+            {/* Gamification (Dev B Placeholders) */}
+            <Route path="/gamification/challenges" element={<PlaceholderPage title="Gamified challenges" />} />
+            <Route path="/gamification/badges" element={<PlaceholderPage title="Unlocked badges" />} />
+            <Route path="/gamification/leaderboard" element={<PlaceholderPage title="Sustainability leaderboard" />} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
+  );
 }
-
-export default App

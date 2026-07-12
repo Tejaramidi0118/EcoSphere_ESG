@@ -4,6 +4,8 @@ const dotenv = require('dotenv');
 const prisma = require('./db');
 const authRoutes = require('./routes/auth.routes');
 const environmentalRoutes = require('./routes/environmental.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
+const reportsRoutes = require('./routes/reports.routes');
 
 dotenv.config();
 
@@ -15,6 +17,20 @@ app.use(express.json());
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/environmental', environmentalRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/reports', reportsRoutes);
+
+app.get('/api/departments', async (req, res) => {
+  try {
+    const depts = await prisma.department.findMany({
+      orderBy: { name: 'asc' },
+    });
+    return res.json(depts);
+  } catch (err) {
+    console.error('Fetch departments error:', err);
+    return res.status(500).json({ error: 'Failed to fetch departments' });
+  }
+});
 
 app.get('/api/health', async (req, res) => {
   try {
