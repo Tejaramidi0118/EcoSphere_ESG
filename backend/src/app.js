@@ -1,15 +1,18 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./db');
+const authRoutes = require('./routes/auth.routes');
 
 dotenv.config();
 
 const app = express();
-const prisma = new PrismaClient();
 
 app.use(cors());
 app.use(express.json());
+
+// API Routes
+app.use('/api/auth', authRoutes);
 
 app.get('/api/health', async (req, res) => {
   try {
@@ -21,7 +24,7 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5555;
 const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

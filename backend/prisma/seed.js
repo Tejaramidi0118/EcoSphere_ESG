@@ -147,12 +147,12 @@ async function main() {
 
   console.log('Seeding emission factors...');
   const factors = [
-    { name: 'Diesel (fleet)', unit: 'litre', co2PerUnit: 2.68, source: 'DEFRA 2026 / EPA' },
-    { name: 'Grid Electricity (India avg)', unit: 'kWh', co2PerUnit: 0.82, source: 'DEFRA 2026 / India CEA' },
-    { name: 'Natural Gas', unit: 'kWh', co2PerUnit: 0.183, source: 'DEFRA 2026' },
-    { name: 'Air Freight', unit: 'tonne-km', co2PerUnit: 0.60, source: 'DEFRA 2026' },
-    { name: 'Road Freight', unit: 'tonne-km', co2PerUnit: 0.10, source: 'DEFRA 2026' },
-    { name: 'Packaging (cardboard)', unit: 'kg', co2PerUnit: 0.94, source: 'DEFRA 2026' },
+    { name: 'Diesel (average blend)', unit: 'litre', co2PerUnit: 2.58, source: 'DESNZ 2026' },
+    { name: 'Petrol (average blend)', unit: 'litre', co2PerUnit: 2.08, source: 'DESNZ 2026' },
+    { name: 'Grid Electricity (UK)', unit: 'kWh', co2PerUnit: 0.131, source: 'DESNZ 2026' },
+    { name: 'Natural Gas', unit: 'kWh', co2PerUnit: 0.182, source: 'DESNZ 2026' },
+    { name: 'Road Freight', unit: 'tonne-km', co2PerUnit: 0.10, source: 'DESNZ 2026' },
+    { name: 'Air Freight', unit: 'tonne-km', co2PerUnit: 0.60, source: 'DESNZ 2026' },
   ];
 
   const dbFactors = {};
@@ -165,9 +165,9 @@ async function main() {
   await prisma.carbonTransaction.create({
     data: {
       departmentId: log.id,
-      emissionFactorId: dbFactors['Diesel (fleet)'].id,
+      emissionFactorId: dbFactors['Diesel (average blend)'].id,
       quantity: 145500, // liters
-      co2Calculated: 145500 * 2.68,
+      co2Calculated: 145500 * 2.58,
       sourceType: 'Fleet',
       date: new Date('2026-05-10'),
     },
@@ -176,9 +176,9 @@ async function main() {
   await prisma.carbonTransaction.create({
     data: {
       departmentId: mfg.id,
-      emissionFactorId: dbFactors['Grid Electricity (India avg)'].id,
+      emissionFactorId: dbFactors['Grid Electricity (UK)'].id,
       quantity: 119512, // kWh
-      co2Calculated: 119512 * 0.82,
+      co2Calculated: 119512 * 0.131,
       sourceType: 'Manufacturing',
       date: new Date('2026-06-15'),
     },
@@ -189,7 +189,7 @@ async function main() {
       departmentId: cor.id,
       emissionFactorId: dbFactors['Natural Gas'].id,
       quantity: 437158, // kWh
-      co2Calculated: 437158 * 0.183,
+      co2Calculated: 437158 * 0.182,
       sourceType: 'Expense',
       date: new Date('2026-04-20'),
     },
